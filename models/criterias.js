@@ -9,6 +9,7 @@ const criteriaSchema = mongoose.Schema({
   criteriaNumber: Number,
   title: String,
   criticality: String,
+  reference: [String],
   topic: { type: mongoose.Schema.Types.ObjectId, ref: 'topics' },
   tests: [testSchema],
 });
