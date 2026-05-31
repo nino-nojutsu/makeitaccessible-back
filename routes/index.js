@@ -83,7 +83,6 @@ router.post("/audit", async (req, res) => {
           if (newAudit) {
             // On enregistre le nouvel audit
             newAudit.save().then(newAudit => {
-              
               // On enregistre chaque issue (devrait s'appeller test) dans un tableau de promesses
               // => Pour l'instant on remonte tous les résultats (pas que les violations/anomalies)
               const promises = auditResults.map(async result => {
@@ -108,7 +107,17 @@ router.post("/audit", async (req, res) => {
           if (newAudit) {
             // On enregistre le nouvel audit
             newAudit.save().then(newAudit => {
-              res.status(200).json({ result: true, website: site, audit: newAudit });
+              // On enregistre chaque issue (devrait s'appeller test) dans un tableau de promesses
+              // => Pour l'instant on remonte tous les résultats (pas que les violations/anomalies)
+              const promises = auditResults.map(async result => {
+                return await createIssues(result.category, result.resultsByFilteredCategory, newAudit._id);
+              });
+
+              // On attend que toutes les promesses soient résolues => on attends que toutes les issues soient enregistrées en bdd
+              // Promise.all renvoie lui même une promesse...
+              Promise.all(promises).then(newIssues => {
+                res.status(200).json({ result: true, website: newSite, audit: newAudit, issues: newIssues });
+              });
             });
           }
         });
