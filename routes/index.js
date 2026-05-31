@@ -1,10 +1,10 @@
 var express = require("express");
 var router = express.Router();
-const fetch = require("node-fetch");
+//const fetch = require("node-fetch");
 const runAllTests = require("../tests/runAllTests.js");
 
 // 0. route POST qui lance un audit et récupère la key url dans le corps de la requête
-router.post("/scan", async (req, res) => {
+router.post("/audit", async (req, res) => {
   const { url } = req.body;
 
   if (url === undefined || url === '') {
