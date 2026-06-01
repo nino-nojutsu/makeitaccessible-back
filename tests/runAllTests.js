@@ -2,6 +2,8 @@ var { chromium } = require("playwright");
 var frLocale = require("axe-core/locales/fr.json"); // locale FR officielle
 var scanImages = require('./categories/images.test.js')
 
+// 0. On crée un tableau de catégories servant à filtrer les résultats par thématique
+// cf. https://accessibilite.numerique.gouv.fr/methode/criteres-et-tests/
 const categories = [
   { name: 'Images', scan: scanImages }, // scan = scanImages
 ];
@@ -25,7 +27,7 @@ async function runAllTests(url) {
       //reporter: "no-passes", // retourne uniquement les violations, ne retourne pas les règles qui passent (on s'en fiche !)
     });
 
-    // Lance axe-run pour récupérer tous les résultats de l'audit
+    // 4. Lance axe-run pour récupérer tous les résultats de l'audit
     return await axe.run({
       runOnly: {
         type: "tag",
@@ -39,15 +41,19 @@ async function runAllTests(url) {
 
   const results = [];
 
+  // 5. Parcours toutes les categories (thématiques) que l'on souhaite filter
   for (const category of categories) {
     // On filtre par thématique (on récupère les tests non applicables, non testables, les validés et les violations) dans l'objet resultsByImageTag
-    const resultsByImageTag = category.scan(audit);
+    const resultsByFilteredCategory = category.scan(audit);
     // Peuple le tableau results par categorie
-    results.push({ category: category.name, resultsByImageTag });
+    results.push({ category: category.name, resultsByFilteredCategory });
   }
 
-  // 4. On ferme le navigateur virtuel
+  // 6. On ferme le navigateur virtuel
   await browser.close();
+
+  // 7. On retourne le tableau listant chaque résultat de chaque thématique (13 au total : 1. Images... 2. Cadres... 3. Couleurs... 4. Multimédia, etc...)
+  // return audit
   return results;
 }
 
