@@ -1,4 +1,4 @@
-// Filtre les anomalies de la thématique Scripts <=> RGAA-1.
+// Filtre les anomalies de la thématique Scripts <=> RGAA-7.
 const scanScripts = (audit) => {
   let inapplicable = audit.inapplicable.filter(item => item.tags.some(tag => tag.includes('RGAA-7.')));
   let passes = audit.passes.filter(item => item.tags.some(tag => tag.includes('RGAA-7.')));

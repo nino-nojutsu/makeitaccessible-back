@@ -1,4 +1,4 @@
-// Filtre les anomalies de la thématique Structuration de l’information <=> RGAA-1.
+// Filtre les anomalies de la thématique Structuration de l’information <=> RGAA-9.
 const scanStructuration = (audit) => {
   let inapplicable = audit.inapplicable.filter(item => item.tags.some(tag => tag.includes('RGAA-9.')));
   let passes = audit.passes.filter(item => item.tags.some(tag => tag.includes('RGAA-9.')));
