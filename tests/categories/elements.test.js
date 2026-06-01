@@ -1,4 +1,4 @@
-// Filtre les anomalies de la thématique Elements Obligatoires <=> RGAA-1.
+// Filtre les anomalies de la thématique Elements Obligatoires <=> RGAA-8.
 const scanElements = (audit) => {
   let inapplicable = audit.inapplicable.filter(item => item.tags.some(tag => tag.includes('RGAA-8.')));
   let passes = audit.passes.filter(item => item.tags.some(tag => tag.includes('RGAA-8.')));
