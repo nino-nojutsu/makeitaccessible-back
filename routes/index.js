@@ -1,16 +1,16 @@
 var express = require("express");
 var router = express.Router();
 const runAllTests = require("../tests/runAllTests.js");
-const Site = require('../models/sites.js');
-const Audit = require('../models/audits.js');
-const Issue = require('../models/issues.js');
-
+const Site = require("../models/sites.js");
+const Audit = require("../models/audits.js");
+const Issue = require("../models/issues.js");
 let auditResults;
-const createAudit = (url, siteId) => {
+
+const createAudit = async (url, siteId) => {
   const audit = new Audit({
     url,
-    status: 'pending',
-    errorMessage: '',
+    status: "pending",
+    errorMessage: "",
     createdAt: Date.now(),
     summary: {
       total: 0,
@@ -20,11 +20,16 @@ const createAudit = (url, siteId) => {
       incomplete: 0,
       score: 0,
     },
-    site: siteId
+    site: siteId,
   });
 
-  return audit;
-}
+  // On enregistre le nouvel audit
+  // save est asynchrone: on doit attente le retour de la promesse qui valide l'enregistrement d'un audit
+  const newAudit = await audit.save();
+  // console.log(`Audit ${newAudit} has been saved!`);
+
+  return newAudit;
+};
 
 const createIssues = async (category, resultsByFilteredCategory, auditId) => {
   // Le modèle devrait s'appeller "Test"
@@ -37,20 +42,21 @@ const createIssues = async (category, resultsByFilteredCategory, auditId) => {
     audit: auditId,
   });
 
-  // save est asynchrone: on doit le retour de la promesse qui valide l'enregistrement d'une issue
+  // On enregistre la nouvelle issue
+  // save est asynchrone: on doit attente le retour de la promesse qui valide l'enregistrement d'une issue
   const newIssue = await issue.save();
-  console.log(`Issue ${newIssue} has been saved!`);
+  // console.log(`Issue ${newIssue} has been saved!`);
 
   return newIssue;
-}
+};
 
 // Route POST qui lance un audit et récupère la key url dans le corps de la requête
 router.post("/audit", async (req, res) => {
   const { url, name, domain } = req.body;
 
   // @nina todo : vérifier/tester qu'une url envoyée est bien au format url (http://, https://) via une regex
-  if (url === undefined || url === '') {
-    res.status(403).json({result: false, error: 'Missing or empty url'})
+  if (url === undefined || url === "") {
+    res.status(403).json({ result: false, error: "Missing or empty url" });
     return;
   }
 
@@ -76,55 +82,75 @@ router.post("/audit", async (req, res) => {
           createdAt: Date.now(),
         });
 
-        website.save().then((newSite) => {
-          // On attente le site s'enregistre, puis on créé un nouvel audit
-          const newAudit = createAudit(url, newSite._id);
+        // On attend que le site s'enregistre, puis on créé un nouvel audit
+        website.save().then(async (newSite) => {
+          // On attend que le nouvel audit s'enregistre
+          const newAudit = await createAudit(url, newSite._id);
 
+          // Si un nouvel a été enregisté en bdd
           if (newAudit) {
-            // On enregistre le nouvel audit
-            newAudit.save().then(newAudit => {
-              // On enregistre chaque issue (devrait s'appeller test) dans un tableau de promesses
-              // => Pour l'instant on remonte tous les résultats (pas que les violations/anomalies)
-              const promises = auditResults.map(async result => {
-                return await createIssues(result.category, result.resultsByFilteredCategory, newAudit._id);
-              });
+            // On enregistre chaque issue (devrait s'appeller test) dans un tableau de promesses
+            // => Pour l'instant on remonte tous les résultats (pas que les violations/anomalies)
+            const promises = auditResults.map(async (result) => {
+              return await createIssues(
+                result.category,
+                result.resultsByFilteredCategory,
+                newAudit._id,
+              );
+            });
 
-              // On attend que toutes les promesses soient résolues => on attends que toutes les issues soient enregistrées en bdd
-              // Promise.all renvoie lui même une promesse...
-              Promise.all(promises).then(newIssues => {
-                res.status(200).json({ result: true, website: newSite, audit: newAudit, issues: newIssues });
+            // On attend que toutes les promesses soient résolues => on attends que toutes les issues soient enregistrées en bdd
+            // Promise.all renvoie lui même une promesse...
+            Promise.all(promises).then((newIssues) => {
+              // console.log("newIssues", newIssues);
+              // console.log(`All ${newIssues} have been saved!`);
+              res.status(200).json({
+                result: true,
+                website: newSite,
+                audit: newAudit,
+                issues: newIssues,
               });
             });
           }
         });
-      }
-      else {
+      } else {
         // Sinon un site existe déjà et on update la date du site existant
-        Site.updateOne({ domain }, { updatedAt: Date.now() }).then(updatedSite => {
-          // On attend que le site soit mis à jour, puis on créé un nouvel audit pour ce même site
-          const newAudit = createAudit(url, site._id);
+        Site.updateOne({ domain }, { updatedAt: Date.now() }).then(
+          async (updatedSite) => {
+            // On attend que le site soit mis à jour, puis on créé un nouvel audit pour ce même site
+            const newAudit = await createAudit(url, site._id);
 
-          if (newAudit) {
-            // On enregistre le nouvel audit
-            newAudit.save().then(newAudit => {
-              // On enregistre chaque issue (devrait s'appeller test) dans un tableau de promesses
-              // => Pour l'instant on remonte tous les résultats (pas que les violations/anomalies)
-              const promises = auditResults.map(async result => {
-                return await createIssues(result.category, result.resultsByFilteredCategory, newAudit._id);
-              });
+            if (newAudit) {
+              // On enregistre le nouvel audit
+              newAudit.save().then((newAudit) => {
+                // On enregistre chaque issue (devrait s'appeller test) dans un tableau de promesses
+                // => Pour l'instant on remonte tous les résultats (pas que les violations/anomalies)
+                const promises = auditResults.map(async (result) => {
+                  return await createIssues(
+                    result.category,
+                    result.resultsByFilteredCategory,
+                    newAudit._id,
+                  );
+                });
 
-              // On attend que toutes les promesses soient résolues => on attends que toutes les issues soient enregistrées en bdd
-              // Promise.all renvoie lui même une promesse...
-              Promise.all(promises).then(newIssues => {
-                res.status(200).json({ result: true, website: newSite, audit: newAudit, issues: newIssues });
+                // On attend que toutes les promesses soient résolues => on attends que toutes les issues soient enregistrées en bdd
+                // Promise.all renvoie lui même une promesse...
+                Promise.all(promises).then((newIssues) => {
+                  res.status(200).json({
+                    result: true,
+                    website: updatedSite,
+                    audit: newAudit,
+                    issues: newIssues,
+                  });
+                });
               });
-            });
-          }
-        });
+            }
+          },
+        );
       }
     });
   } else {
-    res.status(403).json({result: false, error: 'Audit has failed'})
+    res.status(403).json({ result: false, error: "Audit has failed" });
   }
 });
 
