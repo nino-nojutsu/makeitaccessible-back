@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "rgaa": "node ./scripts/rgaa.js"
+    "dump:collections": "node ./scripts/dump_collections.js"
   },
   "dependencies": {
     "axe-core": "^4.11.4",

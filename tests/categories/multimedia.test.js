@@ -1,16 +1,16 @@
 // Filtre les resultats (inapplicable, passes, incomplete et violiations "aka" anomalies) liées RGAA par thématique : thématique Images <=> RGAA-1.
-const scanLiens = (audit) => {
+const scanMultimedia = (audit) => {
   let inapplicable = audit.inapplicable.filter((item) =>
-    item.tags.some((tag) => tag.includes("RGAA-6.")),
+    item.tags.some((tag) => tag.includes("RGAA-4.")),
   );
   let passes = audit.passes.filter((item) =>
-    item.tags.some((tag) => tag.includes("RGAA-6.")),
+    item.tags.some((tag) => tag.includes("RGAA-4.")),
   );
   let incomplete = audit.incomplete.filter((item) =>
-    item.tags.some((tag) => tag.includes("RGAA-6.")),
+    item.tags.some((tag) => tag.includes("RGAA-4.")),
   );
   let violations = audit.violations.filter((item) =>
-    item.tags.some((tag) => tag.includes("RGAA-6.")),
+    item.tags.some((tag) => tag.includes("RGAA-4.")),
   );
 
   return {
@@ -21,4 +21,4 @@ const scanLiens = (audit) => {
   };
 };
 
-module.exports = scanLiens;
+module.exports = scanMultimedia;
