@@ -10,7 +10,6 @@ const createAudit = async (url, siteId) => {
   const audit = new Audit({
     url,
     status: "pending",
-    errorMessage: "",
     createdAt: Date.now(),
     summary: {
       total: 0,
@@ -85,7 +84,11 @@ router.post("/audit", async (req, res) => {
         // On attend que le site s'enregistre, puis on créé un nouvel audit
         website.save().then(async (newSite) => {
           // On attend que le nouvel audit s'enregistre
-          const newAudit = await createAudit(url, newSite._id);
+          try {
+            const newAudit = await createAudit(url, newSite._id);
+          } catch (error) {
+            console.error(error);
+          }
 
           // Si un nouvel a été enregisté en bdd
           if (newAudit) {
@@ -104,11 +107,47 @@ router.post("/audit", async (req, res) => {
             Promise.all(promises).then((newTests) => {
               // console.log("newTests", newTests);
               // console.log(`All ${newTests} have been saved!`);
-              res.status(200).json({
-                result: true,
-                website: newSite,
-                audit: newAudit,
-                tests: newTests,
+
+              // Calcul des totaux pour l'audit en cours
+
+              // reduce :
+              // On crée un nouvel objet summary qui a 4 propriétés (inapplicable, passes, incomplete, violations) initialisées à 0
+              // Pour chaque catégorie testée, à chaque itération, reduce permet de calculer la sommes des longeurs des tableaux par propriétés :
+              // pour acc = l'accumulateur (l'objet summary en cours de construction), pour chacune de ses propriétés,
+              // on additionne à chaque itération la longueur des tableaux du test courant (du document test courant de la catégorie en cours d'itération)
+              const summary = newTests.reduce(
+                (acc, test) => {
+                  acc.inapplicable += test.inapplicable.length;
+                  acc.passes += test.passes.length;
+                  acc.incomplete += test.incomplete.length;
+                  acc.violations += test.violations.length;
+                  return acc;
+                },
+                { inapplicable: 0, passes: 0, incomplete: 0, violations: 0 },
+              );
+
+              summary.total = summary.inapplicable + summary.passes + summary.incomplete + summary.violations;
+              summary.score = (summary.passes / (summary.passes + summary.incomplete + summary.violations)) * 100;
+              summary.score = Math.floor(summary.score);
+
+              // On met à jour les propriétés du nouvel audit
+              Audit.updateOne(
+                { _id: newAudit._id },
+                {
+                  $set: {
+                    status: "completed",
+                    summary,
+                  },
+                },
+              ).then((audit) => {
+                if (audit.modifiedCount > 0) {
+                  res.status(200).json({
+                    result: true,
+                    website: newSite,
+                    audit: newAudit,
+                    tests: newTests,
+                  });
+                }
               });
             });
           }
@@ -150,7 +189,7 @@ router.post("/audit", async (req, res) => {
       }
     });
   } else {
-    res.status(403).json({ result: false, error: "Audit has failed" });
+    res.status(403).json({ result: false, error: "Axe-core has failed" });
   }
 });
 
