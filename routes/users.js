@@ -55,4 +55,43 @@ router.post('/signin', (req, res) => {
   });
 });
 
+router.get('/user', (req, res) => {
+  const token = req.query.token
+  if (!token) {
+    res.json({ result: false, error: 'missing token' });
+    return;
+  }
+
+User.findOne({ token: token })
+ .then(data => {
+  res.json(data)
+ })
+ .catch(error => {
+      res.json({ result: false, error: error.message });
+    });
+})
+
+// router.put('/user', (req, res) => {
+
+//   const token = req.query.token
+//   const updates = req.body.
+
+//   if (!token) {
+//     res.json({ result: false, error: 'missing token' });
+//     return;
+
+//   User.findOneAndUpdate(
+//     { token: token },
+//     { firstName: firstName },
+//     { lastName: lastName },
+//     { username: username },
+//     { email: email },
+//     { password: password },
+
+    
+
+//     { new: true }
+//   )
+
+// })
 module.exports = router;
