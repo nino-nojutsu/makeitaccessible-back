@@ -18,7 +18,7 @@ const createAudit = async (siteId, url) => {
   // On enregistre le nouvel audit
   // save est asynchrone: on doit attente le retour de la promesse qui valide l'enregistrement d'un audit
   const newAudit = await audit.save();
-  console.log(`Audit ${newAudit} has been saved!`);
+  // console.log(`Audit ${newAudit} has been saved!`);
 
   return newAudit;
 };
@@ -120,6 +120,7 @@ const handleAuditCreation = async (siteId, axeCoreResults, url) => {
     }
   }
 }
+
 // Route POST qui lance un audit et récupère la key url dans le corps de la requête
 router.post("/audit", async (req, res) => {
   const { url, name, domain } = req.body;
