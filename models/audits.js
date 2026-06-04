@@ -5,7 +5,7 @@ const auditSchema = mongoose.Schema({
   status: { type: String, default: "pending" }, // status d'état de l'analyse renvoyé par axe-core
   createdAt: { type: Date, default: Date.now() }, // date de création de l'audit
   summary: {
-    inapplicable: { type: Number, default: 0 }, // nombre total de critères innaplicable
+    inapplicable: { type: Number, default: 0 }, // nombre total de critères inapplicables
     passes: { type: Number, default: 0 }, // nombre total de critères validés
     incomplete: { type: Number, default: 0 }, // nombre total de critères incomplet
     violations: { type: Number, default: 0 }, // nombre total de critères en anomalie
