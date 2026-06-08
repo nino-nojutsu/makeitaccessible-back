@@ -6,6 +6,8 @@ const Site = require("../models/sites.js");
 const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
 
+const { checkUser } = require('../modules/checkUser');
+
 // Fonction de création d'un audit
 const createAudit = async (siteId, url) => {
   const audit = new Audit({
@@ -124,19 +126,13 @@ const handleAuditCreation = async (siteId, axeCoreResults, url) => {
 // Route POST qui lance un audit et récupère la key url dans le corps de la requête
 router.post("/audit", async (req, res) => {
   const { url, name, domain } = req.body;
-  
-  // Regex pour vérifier si conforme : doit commencer par https:// + obligation d'avoir un point avec des caractères de chaque côté.
-  const urlCheck = /^https:\/\/.+\..+/;
 
-  // !url = true si url est undefined, null
-  // !urlCheck.test(url) = true si l'url ne correspond pas au format
-  // .test() = méthode native RegExp, prend une string et retourne true/false selon si la regex matche ou pas
+  const urlCheck = /^https:\/\/.+\..+/;
   if (!url || !urlCheck.test(url)) {
     res.status(403).json({ result: false, error: "url incorrect" });
     return;
   }
 
-  // Lance le scan via runAllTests et on "attend" le retour des résultats de axe-core (filtrés par catégorie) avant d'enregistrer un site
   try {
     axeCoreResults = await runAllTests(url);
   } catch (error) {
@@ -145,44 +141,46 @@ router.post("/audit", async (req, res) => {
     return;
   }
 
-  // Si on a des résultats (anomalies, etc...)
   if (axeCoreResults) {
-    // res.status(200).json({ result: true, auditResults });
-    // return;
+    // async ajouté sur le .then() pour pouvoir utiliser await dedans
+    Site.findOne({ domain }).then(async (site) => {
 
-    // Vérifie si un site existe déjà
-    Site.findOne({ domain }).then((site) => {
-
-      // Si un site n'existe pas, on enregistre un nouveau site dans la collection "sites"
+      // refacto : création puis délégation à checkUser
       if (site === null) {
-        const website = new Site({
-          name,
-          domain,
-          createdAt: Date.now(),
-        });
+        const website = new Site({ name, domain, createdAt: Date.now() });
+        const newSite = await website.save();
+        checkUser(req, res, newSite, axeCoreResults, url, handleAuditCreation);
 
-        // On attend que le site s'enregistre, puis on créé un nouvel audit et les tests
+        /* ANCIEN CODE — avant refacto module checkUser
         website.save().then(newSite => {
-          handleAuditCreation(newSite._id, axeCoreResults, url).then(newAudit => {
-            // { ...newAudit } => déstructure l'objet retourné ligne 112 => Devient audit {results:{...}, test:[{...}, {...}]}
-            res.status(200).json({ result: true, website: newSite, audit: { ...newAudit } });
+          handleAuditCreation(newSite._id, axeCoreResults, url).then(async (newAudit) => {
+            const filteredViolations = await checkUser(req, newAudit.tests);
+            res.status(200).json({ result: true, website: newSite, audit: { ...newAudit }, tests: filteredViolations });
           }).catch(error => {
             console.error(error)
           });
         });
+        */
+
       } else {
-        // Sinon un site existe pas, on update la date du site existant et on crée toujours un nouvel audit associé à ce site
+        // refacto : mise à jour de la date puis délégation à checkUser
+        const updatedSite = await Site.updateOne({ domain }, { updatedAt: Date.now() });
+        if (updatedSite.modifiedCount > 0) {
+          checkUser(req, res, site, axeCoreResults, url, handleAuditCreation);
+        }
+
+        /* ANCIEN CODE — avant refacto module checkUser
         Site.updateOne({ domain }, { updatedAt: Date.now() }).then(updatedSite => {
-            if (updatedSite.modifiedCount > 0) {
-              handleAuditCreation(site._id, axeCoreResults, url).then(newAudit => {
-                // { ...newAudit } => déstructure l'objet retourné ligne 112 => Devient audit {results:{...}, test:[{...}, {...}]}
-                res.status(200).json({ result: true, website: site, audit: { ...newAudit } });
-              }).catch(error => {
-                console.error(error)
-              });
-            }
+          if (updatedSite.modifiedCount > 0) {
+            handleAuditCreation(site._id, axeCoreResults, url).then(async (newAudit) => {
+              const filteredViolations = await checkUser(req, newAudit.tests);
+              res.status(200).json({ result: true, website: site, audit: { ...newAudit }, tests: filteredViolations });
+            }).catch(error => {
+              console.error(error)
+            });
           }
-        );
+        });
+        */
       }
     });
   } else {
