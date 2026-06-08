@@ -55,4 +55,61 @@ router.post('/signin', (req, res) => {
   });
 });
 
+router.get('/user', (req, res) => {
+  const token = req.query.token
+  if (!token) {
+    res.json({ result: false, error: 'missing token' });
+    return;
+  }
+
+User.findOne({ token: token })
+ .then(data => {
+  data.password = undefined;
+  res.json(data);
+ })
+ .catch(error => {
+      res.json({ result: false, error: error.message });
+    });
+});
+
+router.put('/user', (req, res) => {
+
+  const token = req.body.token
+    if (!token) {
+    res.json({ result: false, error: 'missing token' });
+    return;
+  }
+
+  const updates = {};
+  if (req.body.firstName) updates.firstName = req.body.firstName.trim();
+  if (req.body.lastName) updates.lastName = req.body.lastName.trim();
+  if (req.body.username) updates.username = req.body.username.trim();
+  if (req.body.email) updates.email = req.body.email.trim();
+  if (req.body.password) updates.password = bcrypt.hashSync(req.body.password, 10);
+  
+  if(Object.keys(updates).length === 0) {
+    res.json({ result: false, error: 'no fields to update' });
+    return;
+  }
+
+  User.findOneAndUpdate(
+    { token: token },
+    updates,
+ {new: true}
+  )  
+  .then(data => {
+
+     if (!data) {
+    return res.json({ result: false, error: "User not found" });
+  }
+    data.password = undefined;
+
+    res.json({ result: true, user: data });
+  })
+  .catch(error => {
+    res.json({ result: false, error: error.message });
+  });
+
+});
+
 module.exports = router;
