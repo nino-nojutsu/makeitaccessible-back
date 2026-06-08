@@ -152,10 +152,11 @@ router.post("/audit", async (req, res) => {
         checkUser(req, res, newSite, axeCoreResults, url, handleAuditCreation);
 
         /* ANCIEN CODE — avant refacto module checkUser
+        // On attend que le site s'enregistre, puis on créé un nouvel audit et les tests
         website.save().then(newSite => {
-          handleAuditCreation(newSite._id, axeCoreResults, url).then(async (newAudit) => {
-            const filteredViolations = await checkUser(req, newAudit.tests);
-            res.status(200).json({ result: true, website: newSite, audit: { ...newAudit }, tests: filteredViolations });
+          handleAuditCreation(newSite._id, axeCoreResults, url).then(newAudit => {
+            // { ...newAudit } => déstructure l'objet retourné ligne 112 => Devient audit {results:{...}, test:[{...}, {...}]}
+            res.status(200).json({ result: true, website: newSite, audit: { ...newAudit } });
           }).catch(error => {
             console.error(error)
           });
@@ -170,16 +171,18 @@ router.post("/audit", async (req, res) => {
         }
 
         /* ANCIEN CODE — avant refacto module checkUser
+        // Sinon un site existe pas, on update la date du site existant et on crée toujours un nouvel audit associé à ce site
         Site.updateOne({ domain }, { updatedAt: Date.now() }).then(updatedSite => {
-          if (updatedSite.modifiedCount > 0) {
-            handleAuditCreation(site._id, axeCoreResults, url).then(async (newAudit) => {
-              const filteredViolations = await checkUser(req, newAudit.tests);
-              res.status(200).json({ result: true, website: site, audit: { ...newAudit }, tests: filteredViolations });
-            }).catch(error => {
-              console.error(error)
-            });
+            if (updatedSite.modifiedCount > 0) {
+              handleAuditCreation(site._id, axeCoreResults, url).then(newAudit => {
+                // { ...newAudit } => déstructure l'objet retourné ligne 112 => Devient audit {results:{...}, test:[{...}, {...}]}
+                res.status(200).json({ result: true, website: site, audit: { ...newAudit } });
+              }).catch(error => {
+                console.error(error)
+              });
+            }
           }
-        });
+        );
         */
       }
     });
