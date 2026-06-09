@@ -6,7 +6,7 @@ const Site = require("../models/sites.js");
 const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
 
-const { checkUser } = require('../modules/checkUser');
+const { auditResults } = require('../controllers/auditResults.controller.js');
 
 // Fonction de création d'un audit
 const createAudit = async (siteId, url) => {
@@ -145,13 +145,13 @@ router.post("/audit", async (req, res) => {
     // async ajouté sur le .then() pour pouvoir utiliser await dedans
     Site.findOne({ domain }).then(async (site) => {
 
-      // refacto : création puis délégation à checkUser
+      // refacto : création puis délégation à auditResults
       if (site === null) {
         const website = new Site({ name, domain, createdAt: Date.now() });
         const newSite = await website.save();
-        checkUser(req, res, newSite, axeCoreResults, url, handleAuditCreation);
+        auditResults(req, res, newSite, axeCoreResults, url, handleAuditCreation);
 
-        /* ANCIEN CODE — avant refacto module checkUser
+        /* ANCIEN CODE — avant refacto module auditResults
         // On attend que le site s'enregistre, puis on créé un nouvel audit et les tests
         website.save().then(newSite => {
           handleAuditCreation(newSite._id, axeCoreResults, url).then(newAudit => {
@@ -164,13 +164,13 @@ router.post("/audit", async (req, res) => {
         */
 
       } else {
-        // refacto : mise à jour de la date puis délégation à checkUser
+        // refacto : mise à jour de la date puis délégation à auditResults
         const updatedSite = await Site.updateOne({ domain }, { updatedAt: Date.now() });
         if (updatedSite.modifiedCount > 0) {
-          checkUser(req, res, site, axeCoreResults, url, handleAuditCreation);
+          auditResults(req, res, site, axeCoreResults, url, handleAuditCreation);
         }
 
-        /* ANCIEN CODE — avant refacto module checkUser
+        /* ANCIEN CODE — avant refacto module auditResults
         // Sinon un site existe pas, on update la date du site existant et on crée toujours un nouvel audit associé à ce site
         Site.updateOne({ domain }, { updatedAt: Date.now() }).then(updatedSite => {
             if (updatedSite.modifiedCount > 0) {
