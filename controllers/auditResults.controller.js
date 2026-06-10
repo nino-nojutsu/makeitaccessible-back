@@ -2,9 +2,10 @@
 const User = require('../models/users');
 
 // Gère la création de l'audit et retourne la réponse filtrée selon le statut de connexion
-async function checkUser(req, res, siteDoc, axeCoreResults, url, handleAuditCreation) {
+async function auditResults(req, res, siteDoc, axeCoreResults, url, handleAuditCreation) {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.body.token;
+    console.log(req.body)
 
     const newAudit = await handleAuditCreation(siteDoc._id, axeCoreResults, url);
 
@@ -34,4 +35,4 @@ async function checkUser(req, res, siteDoc, axeCoreResults, url, handleAuditCrea
   }
 }
 
-module.exports = { checkUser };
+module.exports = { auditResults };
