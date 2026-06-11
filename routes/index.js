@@ -6,8 +6,6 @@ const Site = require("../models/sites.js");
 const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
 
-const { auditResults } = require('../controllers/auditResults.controller.js');
-
 // Fonction de création d'un audit
 const createAudit = async (siteId, url) => {
   const audit = new Audit({
@@ -152,13 +150,17 @@ router.post("/audit", async (req, res) => {
     // res.status(200).json({ result: true, auditResults });
     // return;
 
-      // refacto : création puis délégation à auditResults
-      if (site === null) {
-        const website = new Site({ name, domain, createdAt: Date.now() });
-        const newSite = await website.save();
-        auditResults(req, res, newSite, axeCoreResults, url, handleAuditCreation);
+    // Vérifie si un site existe déjà
+    Site.findOne({ domain }).then((site) => {
 
-        /* ANCIEN CODE — avant refacto module auditResults
+      // Si un site n'existe pas, on enregistre un nouveau site dans la collection "sites"
+      if (site === null) {
+        const website = new Site({
+          name,
+          domain,
+          createdAt: Date.now(),
+        });
+
         // On attend que le site s'enregistre, puis on créé un nouvel audit et les tests
         website.save().then(newSite => {
           handleAuditCreation(newSite._id, axeCoreResults, url).then(newAudit => {
@@ -169,13 +171,6 @@ router.post("/audit", async (req, res) => {
           });
         });
       } else {
-        // refacto : mise à jour de la date puis délégation à auditResults
-        const updatedSite = await Site.updateOne({ domain }, { updatedAt: Date.now() });
-        if (updatedSite.modifiedCount > 0) {
-          auditResults(req, res, site, axeCoreResults, url, handleAuditCreation);
-        }
-
-        /* ANCIEN CODE — avant refacto module auditResults
         // Sinon un site existe pas, on update la date du site existant et on crée toujours un nouvel audit associé à ce site
         Site.updateOne({ domain }, { updatedAt: Date.now() }).then(updatedSite => {
             if (updatedSite.modifiedCount > 0) {
