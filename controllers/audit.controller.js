@@ -1,4 +1,5 @@
 const runAllTests = require("../tests/runAllTests.js");
+// initie variable pour model users pour pouvoir l'utiliser
 const User = require('../models/users');
 const Site = require("../models/sites.js");
 const Audit = require("../models/audits.js");
@@ -6,7 +7,7 @@ const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody.js");
 
 // Fonction de création d'un audit
-const createAudit = async (url, siteId, userId) => {
+const createAudit = async (siteId, userId, url) => {
   const audit = new Audit({
     url,
     status: "running",
@@ -132,7 +133,7 @@ const auditController = async (req, res) => {
   // !url = true si url est undefined, null
   // !urlCheck.test(url) = true si l'url ne correspond pas au format
   // .test() = méthode native RegExp, prend une string et retourne true/false selon si la regex matche ou pas
-  if (checkBody(req.body, ['url', 'name', 'domain', 'token']) && !checkUrl.test(url)) {
+  if (!checkBody(req.body, ['url', 'name', 'domain', 'token']) && !checkUrl.test(url)) {
     res.status(403).json({ result: false, error: "Incorrect url" });
     return;
   }
@@ -181,7 +182,7 @@ const auditController = async (req, res) => {
     });
 
     // On crée un nouvel audit
-    const newAudit = await handleAuditCreation(newSite._id, user?._id, axeCoreResults, url);
+    const newAudit = await handleAuditCreation(newSite._id, user?._id, url, axeCoreResults);
 
     // Si un Audit a bien été créé en bdd
     if (newAudit) {
