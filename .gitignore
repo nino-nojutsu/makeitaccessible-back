@@ -69,3 +69,8 @@ typings/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Others
+README.md
+controllers/users.controller.js
+tests/example.spec.js
