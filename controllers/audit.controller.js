@@ -109,9 +109,9 @@ const handleAuditCreation = async (siteId, userId, url, axeCoreResults) => {
             // On va chercher cet audit par son id pour récupérer ses valeurs (inapplicable, passes, incomplete, violations) mises à jour
             return Audit.findById(newAudit._id).then(audit => {
               // On retourne un objet des résultats de l'audit et des tests associés à l'audit
-              // Ces 2 propriété results et tests, seront destructurées dans le retour de la réponse pour le Front (voir le res.json)
+              // Ces 2 propriétés results et tests, seront destructurées dans le retour de la réponse pour le Front (voir le res.json)
               return {
-                audit,
+                results: audit,
                 tests: newTests
               }
             })
@@ -182,25 +182,24 @@ const auditController = async (req, res) => {
 
     // On crée un nouvel audit
     const newAudit = await handleAuditCreation(newSite._id, user?._id, url, axeCoreResults);
+    console.log('newAudit', newAudit);
 
     // Si un Audit a bien été créé en bdd
     if (newAudit) {
       // Vérifie si l'utilisateur est connecté via son token
       if (!user) {
-        // Non connecté : score global uniquement
+        // Non connecté : score global uniquement : results
         return res.status(200).json({
           result: true,
           website: newSite,
-          audit: {
-            summary: newAudit.audit.summary,
-          }
+          audit: newAudit.results
         });
       } else {
-        // Connecté : toutes les données disponibles à l'utilisateur
+        // Connecté : toutes les données disponibles à l'utilisateur : results + tests
         return res.status(200).json({
           result: true,
           website: newSite,
-          audit: { ...newAudit }
+          audit: newAudit
         });
       }
     } else {
