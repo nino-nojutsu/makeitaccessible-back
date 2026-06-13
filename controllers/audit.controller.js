@@ -1,5 +1,4 @@
 const runAllTests = require("../tests/runAllTests.js");
-// initie variable pour model users pour pouvoir l'utiliser
 const User = require('../models/users');
 const Site = require("../models/sites.js");
 const Audit = require("../models/audits.js");
