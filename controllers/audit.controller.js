@@ -71,6 +71,7 @@ const handleAuditCreation = async (siteId, userId, url, axeCoreResults) => {
       // => On attends que toutes les tests soient enregistrées en bdd
       // => On retourne le résultat Promise.all et Promise.all renvoie lui même une promesse où dedans on cacule les totaux et le score
       return Promise.all(promises).then(newTests => {
+        console.log('Tests created');
         // console.log("newTests", newTests);
         // console.log(`All ${newTests} have been saved!`);
 
@@ -106,6 +107,7 @@ const handleAuditCreation = async (siteId, userId, url, axeCoreResults) => {
         ).then((updatedAudit) => {
           // Si l'audit initiale a été mis à jour
           if (updatedAudit.modifiedCount > 0) {
+            console.log('Audit updated');
             // On va chercher cet audit par son id pour récupérer ses valeurs (inapplicable, passes, incomplete, violations) mises à jour
             return Audit.findById(newAudit._id).then(audit => {
               // On retourne un objet des résultats de l'audit et des tests associés à l'audit
@@ -182,12 +184,11 @@ const auditController = async (req, res) => {
 
     // On crée un nouvel audit
     const newAudit = await handleAuditCreation(newSite._id, user?._id, url, axeCoreResults);
-    console.log('newAudit', newAudit);
+    // console.log('newAudit', newAudit);
+    console.log('Audit created');
 
     // Si un Audit a bien été créé en bdd
     if (newAudit) {
-      console.log('newAudit', newAudit);
-      
       // Vérifie si l'utilisateur est connecté via son token
       if (!user) {
         // Non connecté : score global uniquement : results

@@ -2,49 +2,75 @@ var express = require("express");
 var router = express.Router();
 
 const User = require("../models/users");
+const Audit = require("../models/audits");
+const Site = require("../models/sites");
 const { checkBody } = require("../modules/checkBody");
 const uid2 = require("uid2");
 const bcrypt = require("bcrypt");
 
+const updateSiteForUser = async (websiteId, userDoc) => {
+  return Site.updateOne(
+    { _id: websiteId },
+    { $set: { user: userDoc._id } }
+  ).then(siteDoc => {
+    if (siteDoc.modifiedCount > 0) {
+      return true;
+    } else {
+      res.json({ result: false, error: `Site cannot be assigned to the user: ${userDoc._id}` });
+    }
+  });
+}
+
+const updateAuditForUser = async (auditId, userDoc) => {
+  return Audit.updateOne(
+    { _id: auditId },
+    { $set: { user: userDoc._id } }
+  ).then(auditDoc => {
+    if (auditDoc.modifiedCount > 0) {
+      return true;
+    } else {
+      res.json({ result: false, error: `Audit cannot be assigned to the user: ${userDoc._id}` });
+    }
+  });
+}
+
 /* GET users listing. */
 router.post("/signup", (req, res) => {
-  if (
+  /* if (
     !checkBody(req.body, [
       "firstName",
       "lastName",
+      "email",
       "username",
       "password",
-      "email",
     ])
   ) {
     res.json({ result: false, error: "Missing or empty fields" });
     return;
-  }
+  } */
 
   // Check if the user has not already been registered
   User.findOne({
     $or: [{ username: req.body.username }, { email: req.body.email }],
   }).then((data) => {
-    if (data) {
+    if (data !== null) {
       res.json({ result: false, error: "User already exists" });
       return;
     }
     const hash = bcrypt.hashSync(req.body.password, 10);
 
     const newUser = new User({
-      firstName: req.body.firstName.trim() || "",
-      lastName: req.body.lastName.trim() || "",
-      username: req.body.username.trim() || "",
-      email: req.body.email.trim() || "",
+      firstName: req.body.firstName.trim(),
+      lastName: req.body.lastName.trim(),
+      username: req.body.username.trim(),
+      email: req.body.email.trim(),
       password: hash,
       token: uid2(32),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
 
-    newUser
-      .save()
-      .then((newDoc) => {
+    newUser.save().then((newDoc) => {
         res.json({ result: true, token: newDoc.token });
       })
       .catch((err) => {
@@ -59,9 +85,37 @@ router.post("/signin", (req, res) => {
     return;
   }
 
-  User.findOne({ username: req.body.username.trim() }).then((data) => {
-    if (data && bcrypt.compareSync(req.body.password, data.password)) {
-      res.json({ result: true, token: data.token, username: data.username, firstName: data.firstName });
+  User.findOne({ username: { $regex: new RegExp(req.body.username, 'i') } }).then(async (userDoc) => {
+    if (userDoc && bcrypt.compareSync(req.body.password, userDoc.password)) {
+
+      // Si un audit a précédemment été créé en tant qu'utilisateur anonyme
+      const { auditId, websiteId } = req.body;
+
+      // On relie l'utilisateur connecté à une website et à un audit
+      if (auditId !== null && websiteId !== null) {
+        // Enregistrement d'un site pour l'utilisateur connecté
+        const isUpdatedSite = await updateSiteForUser(websiteId, userDoc);
+        console.log('User is added to the website');
+
+        // Enregistrement d'un audit pour l'utilisateur connecté
+        const isUpdatedAudit = await updateAuditForUser(auditId, userDoc);
+        console.log('User is added to the audit');
+
+        // On retourne les données utilisateurs les id du website et de l'audit pour le front
+        if (isUpdatedSite && isUpdatedAudit) {
+          res.json({
+            result: true,
+            token: userDoc.token,
+            username: userDoc.username,
+            firstName: userDoc.firstName,
+            websiteId: websiteId,
+            auditId: auditId
+          });
+        }
+        
+      } else {
+        res.json({ result: true, token: userDoc.token, username: userDoc.username, firstName: userDoc.firstName });
+      }
     } else {
       res.json({ result: false, error: "User not found or wrong password" });
     }
