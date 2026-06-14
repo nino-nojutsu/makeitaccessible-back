@@ -36,7 +36,7 @@ const updateAuditForUser = async (auditId, userDoc) => {
 
 /* GET users listing. */
 router.post("/signup", (req, res) => {
-  /* if (
+  if (
     !checkBody(req.body, [
       "firstName",
       "lastName",
@@ -47,7 +47,7 @@ router.post("/signup", (req, res) => {
   ) {
     res.json({ result: false, error: "Missing or empty fields" });
     return;
-  } */
+  }
 
   // Check if the user has not already been registered
   User.findOne({
@@ -70,8 +70,34 @@ router.post("/signup", (req, res) => {
       updatedAt: Date.now(),
     });
 
-    newUser.save().then((newDoc) => {
-        res.json({ result: true, token: newDoc.token });
+    newUser.save().then(async (newDoc) => {
+        // Si un audit a précédemment été créé en tant qu'utilisateur anonyme
+      const { auditId, websiteId } = req.body;
+      console.log('auditId', auditId);
+      console.log('websiteId', websiteId);
+
+        // On relie l'utilisateur connecté à une website et à un audit
+        if (auditId !== null && websiteId !== null) {
+          // Enregistrement d'un site pour l'utilisateur connecté
+          const isUpdatedSite = await updateSiteForUser(websiteId, newDoc);
+          console.log('User is added to the website');
+
+          // Enregistrement d'un audit pour l'utilisateur connecté
+          const isUpdatedAudit = await updateAuditForUser(auditId, newDoc);
+          console.log('User is added to the audit');
+
+          // On retourne les données utilisateurs les id du website et de l'audit pour le front
+          if (isUpdatedSite && isUpdatedAudit) {
+            res.json({
+              result: true,
+              token: newDoc.token,
+              websiteId: websiteId,
+              auditId: auditId
+            });
+          }
+        } else {
+          res.json({ result: true, token: newDoc.token });
+        }
       })
       .catch((err) => {
         res.json({ result: false, error: err.message });
