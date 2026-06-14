@@ -12,39 +12,19 @@ const updateSiteForUser = async (websiteId, userDoc) => {
   return Site.updateOne(
     { _id: websiteId },
     { $set: { user: userDoc._id } }
-  ).then(siteDoc => {
-    if (siteDoc.modifiedCount > 0) {
-      return true;
-    } else {
-      res.json({ result: false, error: `Site cannot be assigned to the user: ${userDoc._id}` });
-    }
-  });
+  ).then(siteDoc => siteDoc.modifiedCount > 0);
 }
 
 const updateAuditForUser = async (auditId, userDoc) => {
   return Audit.updateOne(
     { _id: auditId },
     { $set: { user: userDoc._id } }
-  ).then(auditDoc => {
-    if (auditDoc.modifiedCount > 0) {
-      return true;
-    } else {
-      res.json({ result: false, error: `Audit cannot be assigned to the user: ${userDoc._id}` });
-    }
-  });
+  ).then(auditDoc => auditDoc.modifiedCount > 0);
 }
 
-/* GET users listing. */
+/* POST route to register a new user */
 router.post("/signup", (req, res) => {
-  if (
-    !checkBody(req.body, [
-      "firstName",
-      "lastName",
-      "email",
-      "username",
-      "password",
-    ])
-  ) {
+  if (!checkBody(req.body, ["firstName", "lastName", "email", "username", "password"])) {
     res.json({ result: false, error: "Missing or empty fields" });
     return;
   }
@@ -71,40 +51,45 @@ router.post("/signup", (req, res) => {
     });
 
     newUser.save().then(async (newDoc) => {
-        // Si un audit a précédemment été créé en tant qu'utilisateur anonyme
+      // Si un audit a précédemment été créé en tant qu'utilisateur anonyme
       const { auditId, websiteId } = req.body;
-      console.log('auditId', auditId);
-      console.log('websiteId', websiteId);
+      
+      //console.log('auditId', auditId);
+      //console.log('websiteId', websiteId);
 
-        // On relie l'utilisateur connecté à une website et à un audit
-        if (auditId !== null && websiteId !== null) {
-          // Enregistrement d'un site pour l'utilisateur connecté
-          const isUpdatedSite = await updateSiteForUser(websiteId, newDoc);
-          console.log('User is added to the website');
+      // On relie l'utilisateur connecté à une website et à un audit
+      if (auditId !== null && websiteId !== null) {
+        // console.log('ko');
 
-          // Enregistrement d'un audit pour l'utilisateur connecté
-          const isUpdatedAudit = await updateAuditForUser(auditId, newDoc);
-          console.log('User is added to the audit');
+        // Enregistrement d'un site pour l'utilisateur connecté
+        const isUpdatedSite = await updateSiteForUser(websiteId, newDoc);
+        // console.log('User is added to the website');
 
-          // On retourne les données utilisateurs les id du website et de l'audit pour le front
-          if (isUpdatedSite && isUpdatedAudit) {
-            res.json({
-              result: true,
-              token: newDoc.token,
-              websiteId: websiteId,
-              auditId: auditId
-            });
-          }
-        } else {
-          res.json({ result: true, token: newDoc.token });
+        // Enregistrement d'un audit pour l'utilisateur connecté
+        const isUpdatedAudit = await updateAuditForUser(auditId, newDoc);
+        // console.log('User is added to the audit');
+
+        // On retourne les données utilisateurs les id du website et de l'audit pour le front
+        if (isUpdatedSite && isUpdatedAudit) {
+          res.status(200).json({
+            result: true,
+            token: newDoc.token,
+            websiteId: websiteId,
+            auditId: auditId
+          });
         }
-      })
-      .catch((err) => {
-        res.json({ result: false, error: err.message });
-      });
+      } else {
+        // console.log('ok');
+        res.status(200).json({ result: true, token: newDoc.token });
+      }
+    })
+    .catch((err) => {
+      res.status(403).json({ result: false, error: err.message });
+    });
   });
 });
 
+/* POST route to login a user */
 router.post("/signin", (req, res) => {
   if (!checkBody(req.body, ["username", "password"])) {
     res.json({ result: false, error: "Missing or empty fields" });
@@ -116,9 +101,12 @@ router.post("/signin", (req, res) => {
 
       // Si un audit a précédemment été créé en tant qu'utilisateur anonyme
       const { auditId, websiteId } = req.body;
+      
+      console.log('auditId', auditId);
+      console.log('websiteId', websiteId);
 
       // On relie l'utilisateur connecté à une website et à un audit
-      if (auditId !== null && websiteId !== null) {
+      if (auditId && websiteId) {
         // Enregistrement d'un site pour l'utilisateur connecté
         const isUpdatedSite = await updateSiteForUser(websiteId, userDoc);
         console.log('User is added to the website');
@@ -129,7 +117,7 @@ router.post("/signin", (req, res) => {
 
         // On retourne les données utilisateurs les id du website et de l'audit pour le front
         if (isUpdatedSite && isUpdatedAudit) {
-          res.json({
+          res.status(200).json({
             result: true,
             token: userDoc.token,
             username: userDoc.username,
@@ -138,12 +126,16 @@ router.post("/signin", (req, res) => {
             auditId: auditId
           });
         }
-        
       } else {
-        res.json({ result: true, token: userDoc.token, username: userDoc.username, firstName: userDoc.firstName });
+        res.status(200).json({
+          result: true,
+          token: userDoc.token,
+          username: userDoc.username,
+          firstName: userDoc.firstName
+        });
       }
     } else {
-      res.json({ result: false, error: "User not found or wrong password" });
+      res.status(403).json({ result: false, error: "User not found or wrong password" });
     }
   });
 });

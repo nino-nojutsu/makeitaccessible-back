@@ -43,7 +43,7 @@ const createTests = async (category, resultsByFilteredCategory, auditId) => {
 };
 
 // Fonction de création d'un audit + tests associés
-const handleAuditCreation = async (siteId, userId, url, axeCoreResults) => {
+const handleCreateAudit = async (siteId, userId, url, axeCoreResults) => {
   // On initialise un nouvel audit et on attend qu'il s'enregistre en bdd
   let newAudit;
 
@@ -125,7 +125,7 @@ const handleAuditCreation = async (siteId, userId, url, axeCoreResults) => {
 }
 
 // Fonction de création d'un audit appelé par la route POST /audit
-const auditController = async (req, res) => {
+const createAuditController = async (req, res) => {
   const { url, name, domain, token } = req.body;
   
   // Regex pour vérifier si conforme : doit commencer par https:// + obligation d'avoir un point avec des caractères de chaque côté.
@@ -183,7 +183,7 @@ const auditController = async (req, res) => {
     });
 
     // On crée un nouvel audit
-    const newAudit = await handleAuditCreation(newSite._id, user?._id, url, axeCoreResults);
+    const newAudit = await handleCreateAudit(newSite._id, user?._id, url, axeCoreResults);
     // console.log('newAudit', newAudit);
     console.log('Audit created');
 
@@ -213,4 +213,20 @@ const auditController = async (req, res) => {
   }
 }
 
-module.exports = auditController;
+// Fonction qui récupère un audit via son id (indentication d'une ressource via le params envoyé dans l'url)
+const getAuditController = (req, res) => {
+  Audit.findById(req.params.id).then((auditDoc) => {
+    if (auditDoc !== null) {
+      Test.find({ audit: auditDoc._id }).then(testsDoc => {
+        res.status(200).json({
+          result: true,
+          audit: { results: auditDoc, tests: testsDoc }
+        });
+      });
+    } else {
+      res.status(403).json({ result: false, error: 'Unable to find audit'})
+    }
+  });
+}
+
+module.exports = {createAuditController, getAuditController};
