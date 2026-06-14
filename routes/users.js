@@ -8,13 +8,6 @@ const { checkBody } = require("../modules/checkBody");
 const uid2 = require("uid2");
 const bcrypt = require("bcrypt");
 
-const updateSiteForUser = async (websiteId, userDoc) => {
-  return Site.updateOne(
-    { _id: websiteId },
-    { $set: { user: userDoc._id } }
-  ).then(siteDoc => siteDoc.modifiedCount > 0);
-}
-
 const updateAuditForUser = async (auditId, userDoc) => {
   return Audit.updateOne(
     { _id: auditId },
@@ -52,34 +45,20 @@ router.post("/signup", (req, res) => {
 
     newUser.save().then(async (newDoc) => {
       // Si un audit a précédemment été créé en tant qu'utilisateur anonyme
-      const { auditId, websiteId } = req.body;
-      
-      //console.log('auditId', auditId);
-      //console.log('websiteId', websiteId);
+      const { auditId } = req.body;
 
-      // On relie l'utilisateur connecté à une website et à un audit
-      if (auditId !== null && websiteId !== null) {
-        // console.log('ko');
-
-        // Enregistrement d'un site pour l'utilisateur connecté
-        const isUpdatedSite = await updateSiteForUser(websiteId, newDoc);
-        // console.log('User is added to the website');
-
+      // On relie l'utilisateur connecté à un audit
+      if (auditId) {
         // Enregistrement d'un audit pour l'utilisateur connecté
-        const isUpdatedAudit = await updateAuditForUser(auditId, newDoc);
-        // console.log('User is added to the audit');
+        updateAuditForUser(auditId, newDoc);
 
-        // On retourne les données utilisateurs les id du website et de l'audit pour le front
-        if (isUpdatedSite && isUpdatedAudit) {
-          res.status(200).json({
-            result: true,
-            token: newDoc.token,
-            websiteId: websiteId,
-            auditId: auditId
-          });
-        }
+        // On retourne les données utilisateurs et l'id de l'audit pour le front pour appeler /audit/:id et récupérer les tests de l'audit
+        res.status(200).json({
+          result: true,
+          token: newDoc.token,
+          auditId: auditId
+        });
       } else {
-        // console.log('ok');
         res.status(200).json({ result: true, token: newDoc.token });
       }
     })
@@ -100,32 +79,22 @@ router.post("/signin", (req, res) => {
     if (userDoc && bcrypt.compareSync(req.body.password, userDoc.password)) {
 
       // Si un audit a précédemment été créé en tant qu'utilisateur anonyme
-      const { auditId, websiteId } = req.body;
-      
-      console.log('auditId', auditId);
-      console.log('websiteId', websiteId);
+      const { auditId } = req.body;
 
-      // On relie l'utilisateur connecté à une website et à un audit
-      if (auditId && websiteId) {
-        // Enregistrement d'un site pour l'utilisateur connecté
-        const isUpdatedSite = await updateSiteForUser(websiteId, userDoc);
-        console.log('User is added to the website');
-
+      // On relie l'utilisateur connecté à un audit
+      if (auditId) {
         // Enregistrement d'un audit pour l'utilisateur connecté
-        const isUpdatedAudit = await updateAuditForUser(auditId, userDoc);
+        updateAuditForUser(auditId, userDoc);
         console.log('User is added to the audit');
 
-        // On retourne les données utilisateurs les id du website et de l'audit pour le front
-        if (isUpdatedSite && isUpdatedAudit) {
-          res.status(200).json({
-            result: true,
-            token: userDoc.token,
-            username: userDoc.username,
-            firstName: userDoc.firstName,
-            websiteId: websiteId,
-            auditId: auditId
-          });
-        }
+        // On retourne les données utilisateurs et l'id de l'audit pour le front pour appeler /audit/:id et récupérer les tests de l'audit
+        res.status(200).json({
+          result: true,
+          token: userDoc.token,
+          username: userDoc.username,
+          firstName: userDoc.firstName,
+          auditId: auditId
+        });
       } else {
         res.status(200).json({
           result: true,

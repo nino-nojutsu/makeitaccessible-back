@@ -61,8 +61,6 @@ const importRGAA = async () => {
             return newTest;
           });
 
-          console.log('testsArray', testsArray);
-
           const criteria = new Criteria({
             criteriaNumber: criteriaData.criterium.number,
             title: criteriaData.criterium.title,
