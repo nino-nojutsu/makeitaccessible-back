@@ -4,6 +4,7 @@ const Site = require("../models/sites.js");
 const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody.js");
+const { calculateAuditSummary } = require('../services/score.service.js');
 
 // Fonction de création d'un audit
 const createAudit = async (siteId, userId, url) => {
@@ -75,25 +76,8 @@ const handleCreateAudit = async (siteId, userId, url, axeCoreResults) => {
         // console.log("newTests", newTests);
         // console.log(`All ${newTests} have been saved!`);
 
-        // Calcul des totaux pour l'audit en cours avec reduce :
-        // On crée un nouvel objet summary qui a 4 propriétés (inapplicable, passes, incomplete, violations) initialisées à 0
-        // Pour chaque catégorie testée, à chaque itération du tableau newTests, reduce permet de calculer la sommes des longueurs des tableaux par propriétés.
-        // Pour acc = l'accumulateur (l'objet summary en cours de construction), pour chacune de ses propriétés, on additionne à chaque itération la longueur 
-        // des tableaux du test en cours (du document test courant de la catégorie en cours d'itération)
-        const summary = newTests.reduce(
-          (acc, test) => {
-            acc.inapplicable += test.inapplicable.length;
-            acc.passes += test.passes.length;
-            acc.incomplete += test.incomplete.length;
-            acc.violations += test.violations.length;
-            return acc;
-          },
-          { inapplicable: 0, passes: 0, incomplete: 0, violations: 0 },
-        );
-
-        summary.total = summary.inapplicable + summary.passes + summary.incomplete + summary.violations;
-        summary.score = (summary.passes / (summary.passes + summary.incomplete + summary.violations)) * 100;
-        summary.score = Math.floor(summary.score);
+        // On appelle le service qui gère le calcul du score global
+        const summary = calculateAuditSummary(newTests);
 
         // On met à jour les propriétés du nouvel audit
         return Audit.updateOne(
