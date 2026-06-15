@@ -11,6 +11,7 @@ var logger = require('morgan');
 var usersRouter = require('./routes/users');
 var auditRouter = require('./routes/audit');
 var authRouter = require('./routes/auth');
+var siteRouter = require('./routes/site');
 
 
 var app = express();
@@ -28,5 +29,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/users', usersRouter);
 app.use('/audit', auditRouter);
 app.use('/auth', authRouter);
+app.use('/sites', siteRouter);
 
 module.exports = app;

@@ -5,6 +5,7 @@ const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody.js");
 const { calculateAuditSummary } = require('../services/score.service.js');
+const { getSiteAuditSummary } = require("../services/site.service.js");
 
 // Fonction de création d'un audit
 const createAudit = async (siteId, userId, url) => {
@@ -213,4 +214,25 @@ const getAuditController = (req, res) => {
   });
 }
 
-module.exports = {createAuditController, getAuditController};
+
+// Tous les audits d'un utilisateur connecté, avec leur site (POST /audit/all)
+const getAllAuditsController = async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(403).json({ result: false, error: "Token manquant" });
+  }
+
+  const user = await User.findOne({ token });
+  if (!user) {
+    return res.status(403).json({ result: false, error: "Utilisateur non trouvé" });
+  }
+
+  const audits = await Audit.find({ user: user._id, status: "completed" })
+    .populate('site')
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({ result: true, audits });
+};
+
+module.exports = { createAuditController, getAuditController, getAllAuditsController };
