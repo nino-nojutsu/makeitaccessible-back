@@ -12,6 +12,7 @@ var usersRouter = require('./routes/users');
 var auditRouter = require('./routes/audit');
 var testRouter = require('./routes/test');
 var authRouter = require('./routes/auth');
+var auditRouter= require('./routes/audit');
 
 
 var app = express();
@@ -30,5 +31,6 @@ app.use('/users', usersRouter);
 app.use('/audit', auditRouter);
 app.use('/test', testRouter);
 app.use('/auth', authRouter);
+app.use('/audit', auditRouter);
 
 module.exports = app;

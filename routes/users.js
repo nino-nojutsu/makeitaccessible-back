@@ -109,6 +109,7 @@ router.post("/signin", (req, res) => {
   });
 });
 
+// La route GET sert à récupérer des données
 router.get("/user", (req, res) => {
   const token = req.query.token;
   if (!token) {
@@ -126,6 +127,7 @@ router.get("/user", (req, res) => {
     });
 });
 
+// Cette route permet à un utilisateur de modifier son compte
 router.put("/user", (req, res) => {
   const token = req.body.token;
   if (!token) {
