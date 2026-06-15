@@ -1,41 +1,11 @@
-var express = require('express');
+var express = require("express");
 var router = express.Router();
-const Audit = require('../models/audits');
 
-router.get('/audits', (req, res) => {
-  const search = req.query.search;
+const {createAuditController, getAuditController} = require('../controllers/audit.controller.js');
 
-  if (!search) {
-    return res.json({ result: false, error: 'missing search' });
-  }
+// Route POST qui lance un audit et récupère la proprieté "url" dans le corps (body) de la requête
+router.post("/", createAuditController);
 
-  const filter = { url: search };
+router.get("/:id", getAuditController);
 
-  Audit.find(filter)
-    .then(data => {
-      res.json({ result: true, data });
-    })
-    .catch(error => {
-      res.json({ result: false, error: error.message });
-    });
-});
-
-router.get('/date', (req, res) => {
-    const createdAt = req.query.createdAt;
-
-    if (!createdAt) {
-        return res.json({ result: false, error: 'missing date' });
-    }
-  
-    const filter = { createdAt: createdAt };
-
-    Audit.find(filter)
-    .then(data => {
-      res.json({ result: true, data });
-    })
-    .catch(error => {
-      res.json({ result: false, error: error.message });
-    });
-
-})
 module.exports = router;

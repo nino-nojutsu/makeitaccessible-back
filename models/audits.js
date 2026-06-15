@@ -12,8 +12,8 @@ const auditSchema = mongoose.Schema({
     total: { type: Number, default: 0 }, // nombre total de critères évalués
     score: { type: Number, default: 0 }, // pourcentage de réussite : (passes / (passes + incomplete + violations) * 100)
   },
-  site: { type: mongoose.Schema.Types.ObjectId, ref: "sites" }, // réf. vers la collection sites
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "users" }
+  site: { type: mongoose.Schema.Types.ObjectId, ref: "sites", default: null }, // réf. vers la collection sites
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "users", default: null } // réf. vers la collections users
 });
 
 const Audit = mongoose.model("audits", auditSchema);

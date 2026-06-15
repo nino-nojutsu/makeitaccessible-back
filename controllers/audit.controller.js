@@ -1,18 +1,19 @@
-var express = require("express");
-var router = express.Router();
-
 const runAllTests = require("../tests/runAllTests.js");
+const User = require('../models/users');
 const Site = require("../models/sites.js");
 const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
+const { checkBody } = require("../modules/checkBody.js");
+const { calculateAuditSummary } = require('../services/score.service.js');
 
 // Fonction de création d'un audit
-const createAudit = async (siteId, url) => {
+const createAudit = async (siteId, userId, url) => {
   const audit = new Audit({
     url,
     status: "running",
     createdAt: Date.now(),
     site: siteId,
+    user: userId
   });
 
   // On enregistre le nouvel audit
@@ -43,11 +44,12 @@ const createTests = async (category, resultsByFilteredCategory, auditId) => {
 };
 
 // Fonction de création d'un audit + tests associés
-const handleAuditCreation = async (siteId, axeCoreResults, url) => {
+const handleCreateAudit = async (siteId, userId, url, axeCoreResults) => {
   // On initialise un nouvel audit et on attend qu'il s'enregistre en bdd
   let newAudit;
+
   try {
-    newAudit = await createAudit(siteId, url);
+    newAudit = await createAudit(siteId, userId, url);
   } catch (error) {
     console.error(error);
   }
@@ -70,28 +72,12 @@ const handleAuditCreation = async (siteId, axeCoreResults, url) => {
       // => On attends que toutes les tests soient enregistrées en bdd
       // => On retourne le résultat Promise.all et Promise.all renvoie lui même une promesse où dedans on cacule les totaux et le score
       return Promise.all(promises).then(newTests => {
+        console.log('Tests created');
         // console.log("newTests", newTests);
         // console.log(`All ${newTests} have been saved!`);
 
-        // Calcul des totaux pour l'audit en cours avec reduce :
-        // On crée un nouvel objet summary qui a 4 propriétés (inapplicable, passes, incomplete, violations) initialisées à 0
-        // Pour chaque catégorie testée, à chaque itération du tableau newTests, reduce permet de calculer la sommes des longueurs des tableaux par propriétés.
-        // Pour acc = l'accumulateur (l'objet summary en cours de construction), pour chacune de ses propriétés, on additionne à chaque itération la longueur 
-        // des tableaux du test en cours (du document test courant de la catégorie en cours d'itération)
-        const summary = newTests.reduce(
-          (acc, test) => {
-            acc.inapplicable += test.inapplicable.length;
-            acc.passes += test.passes.length;
-            acc.incomplete += test.incomplete.length;
-            acc.violations += test.violations.length;
-            return acc;
-          },
-          { inapplicable: 0, passes: 0, incomplete: 0, violations: 0 },
-        );
-
-        summary.total = summary.inapplicable + summary.passes + summary.incomplete + summary.violations;
-        summary.score = (summary.passes / (summary.passes + summary.incomplete + summary.violations)) * 100;
-        summary.score = Math.floor(summary.score);
+        // On appelle le service qui gère le calcul du score global
+        const summary = calculateAuditSummary(newTests);
 
         // On met à jour les propriétés du nouvel audit
         return Audit.updateOne(
@@ -105,10 +91,11 @@ const handleAuditCreation = async (siteId, axeCoreResults, url) => {
         ).then((updatedAudit) => {
           // Si l'audit initiale a été mis à jour
           if (updatedAudit.modifiedCount > 0) {
+            console.log('Audit updated');
             // On va chercher cet audit par son id pour récupérer ses valeurs (inapplicable, passes, incomplete, violations) mises à jour
             return Audit.findById(newAudit._id).then(audit => {
               // On retourne un objet des résultats de l'audit et des tests associés à l'audit
-              // Ces 2 propriété results et tests, seront destructurées dans le retour de la réponse pour le Front (voir le res.json)
+              // Ces 2 propriétés results et tests, seront destructurées dans le retour de la réponse pour le Front (voir le res.json)
               return {
                 results: audit,
                 tests: newTests
@@ -121,18 +108,18 @@ const handleAuditCreation = async (siteId, axeCoreResults, url) => {
   }
 }
 
-// Route POST qui lance un audit et récupère la key url dans le corps de la requête
-router.post("/audit", async (req, res) => {
-  const { url, name, domain } = req.body;
+// Fonction de création d'un audit appelé par la route POST /audit
+const createAuditController = async (req, res) => {
+  const { url, name, domain, token } = req.body;
   
   // Regex pour vérifier si conforme : doit commencer par https:// + obligation d'avoir un point avec des caractères de chaque côté.
-  const urlCheck = /^https:\/\/.+\..+/;
+  const checkUrl = /^https:\/\/.+\..+/;
 
   // !url = true si url est undefined, null
   // !urlCheck.test(url) = true si l'url ne correspond pas au format
   // .test() = méthode native RegExp, prend une string et retourne true/false selon si la regex matche ou pas
-  if (!url || !urlCheck.test(url)) {
-    res.status(403).json({ result: false, error: "url incorrect" });
+  if (!checkBody(req.body, ['url', 'name', 'domain', 'token']) && !checkUrl.test(url)) {
+    res.status(403).json({ result: false, error: "Incorrect url" });
     return;
   }
 
@@ -147,47 +134,83 @@ router.post("/audit", async (req, res) => {
 
   // Si on a des résultats (anomalies, etc...)
   if (axeCoreResults) {
-    // res.status(200).json({ result: true, auditResults });
+    // res.status(200).json({ result: true, axeCoreResults });
     // return;
+    const user = token ? await User.findOne({ token }) : null;
 
     // Vérifie si un site existe déjà
-    Site.findOne({ domain }).then((site) => {
-
+    const newSite = await Site.findOne({ domain }).then((site) => {
       // Si un site n'existe pas, on enregistre un nouveau site dans la collection "sites"
       if (site === null) {
         const website = new Site({
           name,
           domain,
           createdAt: Date.now(),
+          user
         });
 
         // On attend que le site s'enregistre, puis on créé un nouvel audit et les tests
-        website.save().then(newSite => {
-          handleAuditCreation(newSite._id, axeCoreResults, url).then(newAudit => {
-            // { ...newAudit } => déstructure l'objet retourné ligne 112 => Devient audit {results:{...}, test:[{...}, {...}]}
-            res.status(200).json({ result: true, website: newSite, audit: { ...newAudit } });
-          }).catch(error => {
-            console.error(error)
-          });
+        return website.save().then(newSite => {
+          console.log('Website created');
+          return newSite;
         });
       } else {
-        // Sinon un site existe pas, on update la date du site existant et on crée toujours un nouvel audit associé à ce site
-        Site.updateOne({ domain }, { updatedAt: Date.now() }).then(updatedSite => {
+        // Sinon un site existe, on update la date du site existant
+        return Site.updateOne({ domain }, { updatedAt: Date.now() }).then(updatedSite => {
             if (updatedSite.modifiedCount > 0) {
-              handleAuditCreation(site._id, axeCoreResults, url).then(newAudit => {
-                // { ...newAudit } => déstructure l'objet retourné ligne 112 => Devient audit {results:{...}, test:[{...}, {...}]}
-                res.status(200).json({ result: true, website: site, audit: { ...newAudit } });
-              }).catch(error => {
-                console.error(error)
-              });
+              console.log('Website updated');
+              return site;
             }
           }
         );
       }
     });
-  } else {
-    res.status(403).json({ result: false, error: "aucun résultat" });
-  }
-});
 
-module.exports = router;
+    // On crée un nouvel audit
+    const newAudit = await handleCreateAudit(newSite._id, user?._id, url, axeCoreResults);
+    // console.log('newAudit', newAudit);
+    console.log('Audit created');
+
+    // Si un Audit a bien été créé en bdd
+    if (newAudit) {
+      // Vérifie si l'utilisateur est connecté via son token
+      if (!user) {
+        // Non connecté : score global uniquement : results
+        return res.status(200).json({
+          result: true,
+          website: newSite,
+          audit: { results: newAudit.results }
+        });
+      } else {
+        // Connecté : toutes les données disponibles à l'utilisateur : results + tests
+        return res.status(200).json({
+          result: true,
+          website: newSite,
+          audit: { results: newAudit.results, tests: newAudit.tests }
+        });
+      }
+    } else {
+      res.status(403).json({ result: false, error: "Aucun résultat" });
+    }
+  } else {
+    res.status(403).json({ result: false, error: "Aucun résultat" });
+  }
+}
+
+// Fonction qui récupère un audit via son id (indentication d'une ressource via le params envoyé dans l'url)
+const getAuditController = (req, res) => {
+  Audit.findById(req.params.id).then((auditDoc) => {
+    if (auditDoc !== null) {
+      Test.find({ audit: auditDoc._id }).then(testsDoc => {
+        res.status(200).json({
+          result: true,
+          audit: { results: auditDoc, tests: testsDoc }
+        });
+      });
+    } else {
+      res.status(403).json({ result: false, error: 'Unable to find audit'})
+    }
+  });
+}
+
+module.exports = {createAuditController, getAuditController};
