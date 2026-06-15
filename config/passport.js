@@ -21,19 +21,19 @@ passport.use(
           return done(new Error('No email provided by Google'), null);
         }
 
-        // 1. Cherche user par googleId
+        // Cherche user par googleId
         let user = await User.findOne({ googleId: profile.id });
 
-        // 2. Si pas trouvé → chercher par email (fusion compte)
+        // Si pas trouvé → chercher par email (fusion compte)
         if (!user) {
           user = await User.findOne({ email });
 
           if (user) {
-            // 🔗 Fusion compte existant
+            // Fusion compte existant
             user.googleId = profile.id;
             await user.save();
           } else {
-            // 🆕 Création nouvel utilisateur
+            // Création nouvel utilisateur
             const newUser = new User({
               firstName: profile.name?.givenName || '',
               lastName: profile.name?.familyName || '',
