@@ -20,10 +20,18 @@ const calculateAuditSummary = (tests) => {
     summary.total = summary.inapplicable + summary.passes + summary.incomplete + summary.violations;
 
     // Score = pourcentage de règles validées parmi les règles testables => incomplete et inapplicable sont exclus du calcul
-    const rgaaScore = summary.passes + summary.violations;
-    summary.score = rgaaScore > 0 ? Math.floor((summary.passes / rgaaScore) * 100) : null;
+    summary.score = calculateScore(summary.passes, summary.violations);
 
     return summary;
 };
 
-module.exports = { calculateAuditSummary };
+// Formule commune du score RGAA : passes / (passes + violations) × 100
+// Les critères "incomplete" (non conclusifs, nécessitant vérification humaine) 
+// et "inapplicable" (non concernés par la page) sont exclus du calcul
+// Utilisée par calculateAuditSummary (score par page) et getSiteAuditSummary (score global du site)
+const calculateScore = (passes, violations) => {
+    const rgaaScore = passes + violations;
+    return rgaaScore > 0 ? Math.floor((passes / rgaaScore) * 100) : null;
+};
+
+module.exports = { calculateAuditSummary, calculateScore };

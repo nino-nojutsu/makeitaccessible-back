@@ -1,40 +1,31 @@
 const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
+const { calculateScore } = require("./score.service.js");
 
 // "pire statut gagne" : 0 = pire, 3 = meilleur
-const STATUS_AUDIT = ['violations', 'incomplete', 'passes', 'inapplicable'];
+const STATUS_ORDER = ['violations', 'incomplete', 'passes', 'inapplicable'];
 
 // Récupère le score global d'un site (fusion de toutes ses pages/audits)
 // + la liste des pages avec leur score individuel
 const getSiteAuditSummary = async (siteId) => {
 
-    // 1. Tous les audits complétés de ce site, du plus récent au plus ancien
-    const allAudits = await Audit.find({ site: siteId, status: "completed" })
-        .sort({ createdAt: -1 });
-
-    // 2. Ne garde que le dernier audit par URL (une page peut avoir été auditée plusieurs fois)
-    const latestAuditsByUrl = new Map();
-    allAudits.forEach(audit => {
-        if (!latestAuditsByUrl.has(audit.url)) {
-            latestAuditsByUrl.set(audit.url, audit);
-        }
-    });
-    const audits = Array.from(latestAuditsByUrl.values());
+    // 1. Tous les audits complétés (= toutes les pages) de ce site (d'un domaine)
+    const audits = await Audit.find({ site: siteId, status: "completed" });
     const auditIds = audits.map(a => a._id);
 
-    // 3. Tous les tests (par thématique) liés à ces audits
+    // 2. Tous les tests (par thématique) liés à ces audits
     const tests = await Test.find({ audit: { $in: auditIds } });
 
-    // 3.5 Fusion : si une règle échoue sur au moins une page,
-    // alors elle compte comme violation au niveau du site, même si elle passe ailleurs
+    /* 3. Fusion : si une règle échoue sur au moins une page,
+    alors elle compte comme violation au niveau du site, même si elle passe ailleurs*/
     const mergedRules = new Map();
 
     tests.forEach(test => {
-        STATUS_AUDIT.forEach(status => {
+        STATUS_ORDER.forEach(status => {
             test[status].forEach(rule => {
                 const key = rule.id; // identifiant de la règle axe-core
                 const existing = mergedRules.get(key);
-                if (!existing || STATUS_AUDIT.indexOf(status) < STATUS_AUDIT.indexOf(existing.status)) {
+                if (!existing || STATUS_ORDER.indexOf(status) < STATUS_ORDER.indexOf(existing.status)) {
                     mergedRules.set(key, { status });
                 }
             });
@@ -46,8 +37,7 @@ const getSiteAuditSummary = async (siteId) => {
     mergedRules.forEach(({ status }) => summary[status]++);
 
     // 5. Score global du site (même formule que par page)
-    const denom = summary.passes + summary.violations;
-    summary.score = denom > 0 ? Math.floor((summary.passes / denom) * 100) : null;
+    summary.score = calculateScore(summary.passes, summary.violations);
 
     // 6. Détail par page
     const pages = audits.map(a => ({
@@ -55,7 +45,6 @@ const getSiteAuditSummary = async (siteId) => {
         url: a.url,
         score: a.summary.score,
     }));
-
 
     return { summary, pages };
 
