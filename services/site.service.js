@@ -3,7 +3,7 @@ const Test = require("../models/tests.js");
 const { calculateScore } = require("./score.service.js");
 
 // "pire statut gagne" : 0 = pire, 3 = meilleur
-const STATUS_ORDER = ['violations', 'incomplete', 'passes', 'inapplicable'];
+const STATUS_AUDIT = ['violations', 'incomplete', 'passes', 'inapplicable'];
 
 // Récupère le score global d'un site (fusion de toutes ses pages/audits)
 // + la liste des pages avec leur score individuel
@@ -21,11 +21,11 @@ const getSiteAuditSummary = async (siteId) => {
     const mergedRules = new Map();
 
     tests.forEach(test => {
-        STATUS_ORDER.forEach(status => {
+        STATUS_AUDIT.forEach(status => {
             test[status].forEach(rule => {
                 const key = rule.id; // identifiant de la règle axe-core
                 const existing = mergedRules.get(key);
-                if (!existing || STATUS_ORDER.indexOf(status) < STATUS_ORDER.indexOf(existing.status)) {
+                if (!existing || STATUS_AUDIT.indexOf(status) < STATUS_AUDIT.indexOf(existing.status)) {
                     mergedRules.set(key, { status });
                 }
             });

@@ -5,7 +5,6 @@ const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody.js");
 const { calculateAuditSummary } = require('../services/score.service.js');
-const { getSiteAuditSummary } = require("../services/site.service.js");
 
 // Fonction de création d'un audit
 const createAudit = async (siteId, userId, url) => {
