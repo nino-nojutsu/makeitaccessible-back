@@ -17,21 +17,28 @@ const testValidationAction = (req, res) => {
     }
 
     // Vérifie si le test a été trouvé
-    Test.findById(req.body.testId).then(test => {
-      if (!test) {
+    Test.findById(req.body.testId).then(testDoc => {
+      if (!testDoc) {
         res.json({ result: false, error: 'Test not found' });
         return;
       }
 
+      console.log('testDoc._id', testDoc._id);
+
       Test.updateOne(
-        { _id: test._id },
+        { _id: testDoc._id },
         {
           $set: {
             status: "validated"
           }
         }
-      ).then(() => {
-        res.status(200).json({ result: true, test });
+      ).then((updatedTest) => {
+        if (updatedTest.modifiedCount > 0) {
+          console.log('Test updated');
+          res.status(200).json({ result: true });
+        } else {
+          res.status(403).json({ result: false, error: 'Unable to update a test' });
+        }
       });
     });
   });
