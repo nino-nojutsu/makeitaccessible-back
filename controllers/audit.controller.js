@@ -234,4 +234,39 @@ const getAllAuditsController = async (req, res) => {
   res.status(200).json({ result: true, audits });
 };
 
-module.exports = { createAuditController, getAuditController, getAllAuditsController };
+// DELETE: supprimer un audit
+const deleteAuditController = async (req, res) => {
+  const { auditId } = req.params;
+  const { token } = req.body;
+
+  // CheckBody vérifie que token est présent et non vide
+  if (!checkBody(req.body, ['token'])) {
+    return res.status(403).json({ result: false, error: "Token manquant" });
+  }
+
+  // Vérifier si un utilisateur existe et si un site existe aussi 
+  const user = await User.findOne({ token });
+  if (!user) {
+    return res.status(403).json({ result: false, error: "Utilisateur non trouvé" });
+  }
+  const audit = await Audit.findById(auditId);
+  if (!audit) {
+    return res.status(403).json({ result: false, error: "Audit introuvable" });
+  }
+
+  // 1. vérifie que l'utilisateur est bien propriétaire de l'audit
+  const hasAccess = await Audit.exists({ _id: auditId, user: user._id });
+  if (!hasAccess) {
+    return res.status(403).json({ result: false, error: "Accès non autorisé" });
+  }
+
+  // 2. Supprime tous les tests liés à ces audits
+  await Test.deleteMany({ audit: auditId });
+
+  // 3. Supprime l'audit
+  await Audit.deleteOne({ _id: auditId });
+
+  res.status(200).json({ result: true });
+};
+
+module.exports = { createAuditController, getAuditController, getAllAuditsController, deleteAuditController };
