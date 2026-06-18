@@ -10,6 +10,9 @@ const getSiteAuditSummaryController = async (req, res) => {
   const { token } = req.body;
   const { siteId } = req.params;
 
+  console.log('token reçu :', token);
+  console.log('siteId reçu :', siteId);
+
   // CheckBody vérifie que token est présent et non vide
   if (!checkBody(req.body, ['token'])) {
     return res.status(403).json({ result: false, error: "Token manquant" });
