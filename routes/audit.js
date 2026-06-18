@@ -10,7 +10,7 @@ router.post("/", createAuditAction);
 router.post("/all", getAllAuditsAction);   
 
 // GET (1 audit + tests)
-router.get("/:id", getAuditAction);  
+router.get("/:id", getAuditAction);
 
 // DELETE / supprimer un audit d'une page
 router.delete("/:auditId", deleteAuditAction);  

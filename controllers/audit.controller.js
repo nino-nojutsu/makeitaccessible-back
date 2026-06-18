@@ -6,6 +6,7 @@ const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody.js");
 const { calculateAuditSummary } = require('../services/score.service.js');
 
+// CREATE
 // Fonction de création d'un audit
 const createAudit = async (siteId, userId, url) => {
   const audit = new Audit({
@@ -198,6 +199,7 @@ const createAuditAction = async (req, res) => {
   }
 }
 
+// READ
 // Fonction qui récupère un audit via son id (indentication d'une ressource via le params envoyé dans l'url)
 const getAuditAction = (req, res) => {
   Audit.findById(req.params.id).then((auditDoc) => {
@@ -236,7 +238,9 @@ const getAllAuditsAction = async (req, res) => {
   res.status(200).json({ result: true, audits });
 };
 
-// DELETE: supprimer un audit
+
+// DELETE
+// supprimer un audit
 const deleteAuditAction = async (req, res) => {
   const { auditId } = req.params;
   const { token } = req.body;

@@ -10,7 +10,7 @@ const STATUS_AUDIT = ['violations', 'incomplete', 'passes', 'inapplicable'];
 const getSiteAuditSummary = async (siteId) => {
 
     // 1. Tous les audits complétés (= toutes les pages) de ce site (d'un domaine)
-    const audits = await Audit.find({ site: siteId, status: "completed" });
+    const audits = await Audit.find({ site: siteId });
     const auditIds = audits.map(a => a._id);
 
     // 2. Tous les tests (par thématique) liés à ces audits
