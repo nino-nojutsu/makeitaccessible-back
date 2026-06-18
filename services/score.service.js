@@ -2,6 +2,10 @@
 // On crée un nouvel objet summary qui a 4 propriétés (inapplicable, passes, incomplete, violations) initialisées à 0
 // Pour chaque catégorie testée, à chaque itération du tableau newTests, reduce permet de calculer la sommes des longueurs des tableaux par propriétés.
 // Pour acc = l'accumulateur (l'objet summary en cours de construction), pour chacune de ses propriétés, on additionne à chaque itération la longueur 
+
+const { auditSlice } = require("../../MakeItAccessible-front/reducers/audit");
+const Audit = require("../models/audits");
+
 // des tableaux du test en cours (du document test courant de la catégorie en cours d'itération)
 const calculateAuditSummary = (tests) => {
     // reduce parcourt le tableau tests et additionne la longueur des tableaux de chaque test pour obtenir les totaux globaux de l'audit
@@ -20,7 +24,10 @@ const calculateAuditSummary = (tests) => {
     summary.total = summary.inapplicable + summary.passes + summary.incomplete + summary.violations;
 
     // Score = pourcentage de règles validées parmi les règles testables => incomplete et inapplicable sont exclus du calcul
-    summary.score = calculateScore(summary.passes, summary.violations);
+    // gérer si 1 seul audit restant
+    summary.score = auditSlice.length === 1
+    ? audits[0].summary.score // score direct de la page restante (audit)
+    : calculateScore(summary.passes, summary.violations); // on fusionne les pages
 
     return summary;
 };
