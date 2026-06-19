@@ -44,6 +44,31 @@ const getSiteAuditSummaryController = async (req, res) => {
   });
 };
 
+// GET / dynamique par site 
+const getSiteView = async (req, res) => {
+  const { token, id } = req.params;
+
+   const user = await User.findOne({ token });
+  if (!user) {
+    return res.status(403).json({ result: false, error: "Utilisateur non trouvé" });
+  }
+
+  const site = await Site.findById(id);
+
+         if (!site) {
+
+    return res.status(404).json({ result: false, error: "site introuvable" });
+  }
+
+  const audits = await Audit.find({ site: id });
+  const auditIds = audits.map(audit => audit._id);
+   const tests = await Test.find({ audit: { $in: auditIds } });
+
+   res.json({ result: true, results: site, audits, tests });
+
+};
+
+
 // DELETE: supprimer un site
 const deleteSiteController = async (req, res) => {
   const { siteId } = req.params;
@@ -86,4 +111,4 @@ const deleteSiteController = async (req, res) => {
   res.status(200).json({ result: true });
 };
 
-module.exports = { getSiteAuditSummaryController, deleteSiteController };
+module.exports = { getSiteAuditSummaryController, getSiteView, deleteSiteController };
