@@ -4,6 +4,7 @@ var router = express.Router();
 const User = require("../models/users");
 const Audit = require("../models/audits");
 const Site = require("../models/sites");
+const Test = require('../models/tests.js');
 const { checkBody } = require("../modules/checkBody");
 const uid2 = require("uid2");
 const bcrypt = require("bcrypt");
@@ -62,9 +63,9 @@ router.post("/signup", (req, res) => {
         res.status(200).json({ result: true, token: newDoc.token });
       }
     })
-    .catch((err) => {
-      res.status(403).json({ result: false, error: err.message });
-    });
+      .catch((err) => {
+        res.status(403).json({ result: false, error: err.message });
+      });
   });
 });
 
@@ -159,5 +160,37 @@ router.put("/user", (req, res) => {
       res.json({ result: false, error: error.message });
     });
 });
+
+// DELETE
+
+router.delete("/",  async(req, res)  => {
+  if (!checkBody(req.body, ['token'])) {
+    return res.json({ result: false, error: 'Missing or empty fields' });
+  }
+
+  const user = await User.findOne({ token: req.body.token });
+  if (!user) {
+    return res.json({ result: false, error: 'User not found' });
+  }
+
+  // 1. Tous les audits de l'utilisateur
+  const audits = await Audit.find({ user: user._id }, '_id');
+  const auditIds = audits.map(a => a._id);
+
+  // 2. Tous les tests liés à ces audits
+  await Test.deleteMany({ audit: { $in: auditIds } });
+
+  // 3. Les audits
+  await Audit.deleteMany({ user: user._id });
+
+  // 4. L'utilisateur
+  await User.deleteOne({ _id: user._id });
+
+  User.deleteOne({ _id: user._id }).then(() => {
+    res.json({ result: true, message: 'Deleted!' });
+  });
+});
+
+
 
 module.exports = router;
