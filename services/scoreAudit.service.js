@@ -1,10 +1,12 @@
 /* Ce service calcule le score d'un audit */
 
 // Calcul des totaux pour l'audit en cours avec reduce :
+// reduce = une boucle qui se cumule
 // On crée un nouvel objet summary qui a 4 propriétés (inapplicable, passes, incomplete, violations) initialisées à 0
 // Pour acc = l'accumulateur (l'objet summary en cours de construction), pour chacune de ses propriétés, on additionne à chaque itération la longueur 
 const calculateAuditSummary = (tests) => {
     // reduce parcourt le tableau tests et additionne la longueur des tableaux de chaque test pour obtenir les totaux globaux de l'audit
+    
     const summary = tests.reduce(
         (acc, test) => {
             acc.inapplicable += test.inapplicable.length;
@@ -16,7 +18,8 @@ const calculateAuditSummary = (tests) => {
         { inapplicable: 0, passes: 0, incomplete: 0, violations: 0 }
     );
 
-    // Total de toutes les règles évaluées, tous types confondus
+    // => à la fin, summary contient les totaux de tous les tests
+    // Toutes les règles évaluées, tous types confondus
     summary.total = summary.inapplicable + summary.passes + summary.incomplete + summary.violations;
 
     // Score = pourcentage de règles validées parmi les règles testables => incomplete et inapplicable sont exclus du calcul

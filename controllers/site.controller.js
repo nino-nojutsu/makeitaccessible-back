@@ -3,7 +3,7 @@ const Site = require("../models/sites.js");
 const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody.js");
-const { getSiteAuditSummary } = require("../services/site.service.js");
+const { getSiteAuditSummary } = require("../services/scoreSite.service.js");
 
 // POST: score global d'un site (fusion de toutes ses pages) si user connecté uniquement
 const getSiteAuditSummaryController = async (req, res) => {

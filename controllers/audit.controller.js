@@ -4,7 +4,7 @@ const Site = require("../models/sites.js");
 const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody.js");
-const { calculateAuditSummary } = require('../services/score.service.js');
+const { calculateAuditSummary } = require('../services/scoreAudit.service.js');
 
 // CREATE
 // Fonction de création d'un audit

@@ -2,7 +2,7 @@
 
 const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
-const { calculateScore } = require("./score.service.js");
+const { calculateScore } = require("./scoreAudit.service.js");
 
 /* 
   NOTE_AUDIT définit l'ordre de gravité des statuts, du pire au meilleur :
