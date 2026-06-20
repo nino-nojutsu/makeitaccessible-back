@@ -27,12 +27,21 @@ const createAudit = async (siteId, userId, url) => {
 
 // Fonction de création des tests
 const createTests = async (category, resultsByFilteredCategory, auditId) => {
+  // console.log('resultsByFilteredCategory', resultsByFilteredCategory);
+
+  // Extrait chaque règle Axe-core par type et ajoute le status "to_do" à chaque objet dans une règle en mappant chaque rules
+  // ...rule spread tiut le contenu de l'objet rule
+  const inapplicable = resultsByFilteredCategory.inapplicable.map(rule => ({ ...rule, status: 'to_do' }));
+  const passes = resultsByFilteredCategory.passes.map(rule => ({ ...rule, status: 'to_do' }));
+  const incomplete = resultsByFilteredCategory.incomplete.map(rule => ({ ...rule, status: 'to_do' }));
+  const violations = resultsByFilteredCategory.violations.map(rule => ({ ...rule, status: 'to_do' }));
+
   const test = new Test({
     category,
-    inapplicable: resultsByFilteredCategory.inapplicable,
-    passes: resultsByFilteredCategory.passes,
-    incomplete: resultsByFilteredCategory.incomplete,
-    violations: resultsByFilteredCategory.violations,
+    inapplicable,
+    passes,
+    incomplete,
+    violations,
     audit: auditId,
   });
 
