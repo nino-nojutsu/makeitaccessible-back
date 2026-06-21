@@ -29,12 +29,13 @@ const createAudit = async (siteId, userId, url) => {
 const createTests = async (category, resultsByFilteredCategory, auditId) => {
   // console.log('resultsByFilteredCategory', resultsByFilteredCategory);
 
-  // Extrait chaque règle Axe-core par type et ajoute le status "to_do" à chaque objet dans une règle en mappant chaque rules
-  // ...rule spread tiut le contenu de l'objet rule
-  const inapplicable = resultsByFilteredCategory.inapplicable.map(rule => ({ ...rule, status: 'to_do' }));
-  const passes = resultsByFilteredCategory.passes.map(rule => ({ ...rule, status: 'to_do' }));
-  const incomplete = resultsByFilteredCategory.incomplete.map(rule => ({ ...rule, status: 'to_do' }));
-  const violations = resultsByFilteredCategory.violations.map(rule => ({ ...rule, status: 'to_do' }));
+  // Pour chaque document testDoc créé, extrait chaque règle Axe-core par type et ajoute en complément la key status "to_do" 
+  // et la key comments (à chaîne vide) à chaque objet de règle en mappant chaque rules catégorisées
+  // Attention! {...rule} spread tiut le contenu de l'objet rule
+  const inapplicable = resultsByFilteredCategory.inapplicable.map(rule => ({ ...rule, status: 'to_do', comments: '' }));
+  const passes = resultsByFilteredCategory.passes.map(rule => ({ ...rule, status: 'validated', comments: null }));
+  const incomplete = resultsByFilteredCategory.incomplete.map(rule => ({ ...rule, status: 'to_do', comments: '' }));
+  const violations = resultsByFilteredCategory.violations.map(rule => ({ ...rule, status: 'to_do', comments: '' }));
 
   const test = new Test({
     category,
@@ -144,6 +145,7 @@ const createAuditAction = async (req, res) => {
 
   // Si on a des résultats (anomalies, etc...)
   if (axeCoreResults) {
+    // Pour afficher les données bruts ou filtrées par catégorie
     // res.status(200).json({ result: true, axeCoreResults });
     // return;
     const user = token ? await User.findOne({ token }) : null;
