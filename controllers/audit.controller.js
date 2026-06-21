@@ -261,6 +261,31 @@ const getAuditView = async (req, res) => {
 
 };
 
+// rechercher un audit
+const searchAudit = async (req, res) => {
+	const { search } = req.query;
+	const { token } = req.params;
+
+	try {
+		const user = await User.findOne({ token });
+		if (!user) {
+			return res.status(403).json({ result: false, error: "Utilisateur non trouvé" });
+		}
+
+		const filters = {};
+		if (search) filters.url = { $regex: new RegExp(search, 'i') };
+
+		const audits = await Audit.find(filters);
+
+		if (audits.length === 0) {
+			return res.json({ result: false, error: 'Aucun audit trouvé' });
+		}
+		res.json({ result: true, search: audits });
+	} catch (error) {
+		res.status(500).json({ result: false, error: error.message });
+	}
+};
+
 
 // DELETE
 // supprimer un audit
@@ -298,4 +323,4 @@ const deleteAuditAction = async (req, res) => {
   res.status(200).json({ result: true });
 };
 
-module.exports = { createAuditAction, getAuditAction, getAllAuditsAction, getAuditView, deleteAuditAction };
+module.exports = { createAuditAction, getAuditAction, getAllAuditsAction, getAuditView, searchAudit, deleteAuditAction };
