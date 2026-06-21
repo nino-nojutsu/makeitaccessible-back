@@ -1,7 +1,7 @@
 var express = require("express");
 var router = express.Router();
 
-const { createAuditAction, getAuditAction, getAllAuditsAction, getAuditView, deleteAuditAction } = require('../controllers/audit.controller.js');
+const { createAuditAction, getAuditAction, getAllAuditsAction, getAuditView, deleteAuditAction, searchAudit } = require('../controllers/audit.controller.js');
 
 // Route POST qui lance un audit et récupère la proprieté "url" dans le corps (body) de la requête
 router.post("/", createAuditAction);
@@ -14,6 +14,8 @@ router.post("/all", getAllAuditsAction);
 router.get("/:id", getAuditAction);
 // audit dynamique
 router.get('/archive/:token/:id', getAuditView);
+// rechercher un audit
+router.get('/search/:token', searchAudit);
 
 // DELETE / supprimer un audit d'une page
 router.delete("/:auditId", deleteAuditAction);  
