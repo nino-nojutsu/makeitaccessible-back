@@ -1,3 +1,6 @@
+var { chromium } = require("playwright");
+//var { readFileSync, readdirSync } = require("fs");
+
 const runAllTests = require("../tests/runAllTests.js");
 const User = require('../models/users');
 const Site = require("../models/sites.js");
@@ -250,7 +253,7 @@ const getAllAuditsAction = async (req, res) => {
 };
 
 // GET / dynamique par audit 
-const getAuditView = async (req, res) => {
+const getAuditViewAction = async (req, res) => {
   const { token, id } = req.params;
 
    const user = await User.findOne({ token });
@@ -273,7 +276,7 @@ const getAuditView = async (req, res) => {
 };
 
 // rechercher un audit
-const searchAudit = async (req, res) => {
+const searchAuditAction = async (req, res) => {
 	const { search } = req.query;
 	const { token } = req.params;
 
@@ -296,7 +299,6 @@ const searchAudit = async (req, res) => {
 		res.status(500).json({ result: false, error: error.message });
 	}
 };
-
 
 // DELETE
 // supprimer un audit
@@ -334,4 +336,39 @@ const deleteAuditAction = async (req, res) => {
   res.status(200).json({ result: true });
 };
 
-module.exports = { createAuditAction, getAuditAction, getAllAuditsAction, getAuditView, searchAudit, deleteAuditAction };
+// GET: générer les résultats d'un audit au format PDF
+const generatePDFAuditAction = async (req, res) => {
+  //onst script = readFileSync(`./build/static/js/main.<hash>.js`) // reference to compiled react app
+  //const css = readFileSync(`./build/static/css/main.<hash>.css`) // reference to compiled react css
+
+  // inline script and styles into a html boilerplate
+  const staticHtml = `
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width,initial-scale=1" />
+    </head>
+    <body>
+      <div>test</div>
+    </body>
+  </html>`
+
+  // launch chromium and create a page
+  const browser = await chromium.launch()
+  const page = await browser.newPage();
+
+  // set the content to be the react app
+  await page.setContent(staticHtml)
+
+  // save the page to a file using playwrights `.pdf` function
+  await page.pdf({
+    path: 'renderedwithplaywright.pdf',
+    margin: { top: '0px', left: '0px', right: '0px', bottom: '0px' },
+    format: 'A4',
+  })
+
+  await browser.close()
+}
+
+module.exports = { createAuditAction, getAuditAction, getAllAuditsAction, getAuditViewAction, searchAuditAction, deleteAuditAction, generatePDFAuditAction };
