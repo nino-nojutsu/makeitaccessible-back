@@ -4,6 +4,7 @@ var router = express.Router();
 const User = require("../models/users");
 const Audit = require("../models/audits");
 const Site = require("../models/sites");
+const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody");
 const uid2 = require("uid2");
 const bcrypt = require("bcrypt");
@@ -17,7 +18,15 @@ const updateAuditForUser = async (auditId, userDoc) => {
 
 /* POST route to register a new user */
 router.post("/signup", (req, res) => {
-  if (!checkBody(req.body, ["firstName", "lastName", "email", "username", "password"])) {
+  if (
+    !checkBody(req.body, [
+      "firstName",
+      "lastName",
+      "email",
+      "username",
+      "password",
+    ])
+  ) {
     res.json({ result: false, error: "Missing or empty fields" });
     return;
   }
@@ -51,13 +60,17 @@ router.post("/signup", (req, res) => {
         if (auditId) {
           updateAuditForUser(auditId, newDoc);
 
+          // Retourne les données utilisateurs et l'id de l'audit
           res.status(200).json({
             result: true,
             token: newDoc.token,
             auditId: auditId,
           });
         } else {
-          res.status(200).json({ result: true, token: newDoc.token });
+          res.status(200).json({
+            result: true,
+            token: newDoc.token,
+          });
         }
       })
       .catch((err) => {
@@ -170,4 +183,27 @@ router.put("/user", (req, res) => {
     });
 });
 
+// DELETE
+router.delete("/", async (req, res) => {
+  if (!checkBody(req.body, ["token"])) {
+    return res.json({ result: false, error: "Missing or empty fields" });
+  }
+
+  const user = await User.findOne({ token: req.body.token });
+
+  if (!user) {
+    return res.json({ result: false, error: "User not found" });
+  }
+
+  const audits = await Audit.find({ user: user._id }, "_id");
+  const auditIds = audits.map((a) => a._id);
+
+  await Test.deleteMany({ audit: { $in: auditIds } });
+  await Audit.deleteMany({ user: user._id });
+  await User.deleteOne({ _id: user._id });
+
+  res.json({ result: true, message: "Deleted!" });
+});
+
 module.exports = router;
+

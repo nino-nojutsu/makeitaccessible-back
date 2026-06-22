@@ -1,10 +1,12 @@
+/* Ce service calcule le score d'un audit */
+
 // Calcul des totaux pour l'audit en cours avec reduce :
+// reduce = une boucle qui se cumule
 // On crée un nouvel objet summary qui a 4 propriétés (inapplicable, passes, incomplete, violations) initialisées à 0
-// Pour chaque catégorie testée, à chaque itération du tableau newTests, reduce permet de calculer la sommes des longueurs des tableaux par propriétés.
 // Pour acc = l'accumulateur (l'objet summary en cours de construction), pour chacune de ses propriétés, on additionne à chaque itération la longueur 
-// des tableaux du test en cours (du document test courant de la catégorie en cours d'itération)
 const calculateAuditSummary = (tests) => {
     // reduce parcourt le tableau tests et additionne la longueur des tableaux de chaque test pour obtenir les totaux globaux de l'audit
+    
     const summary = tests.reduce(
         (acc, test) => {
             acc.inapplicable += test.inapplicable.length;
@@ -16,14 +18,23 @@ const calculateAuditSummary = (tests) => {
         { inapplicable: 0, passes: 0, incomplete: 0, violations: 0 }
     );
 
-    // Total de toutes les règles évaluées, tous types confondus
+    // => à la fin, summary contient les totaux de tous les tests
+    // Toutes les règles évaluées, tous types confondus
     summary.total = summary.inapplicable + summary.passes + summary.incomplete + summary.violations;
 
     // Score = pourcentage de règles validées parmi les règles testables => incomplete et inapplicable sont exclus du calcul
-    const rgaaScore = summary.passes + summary.violations;
-    summary.score = rgaaScore > 0 ? Math.floor((summary.passes / rgaaScore) * 100) : null;
+    // incomplete et inapplicable sont exclus du calcul
+    summary.score = calculateScore(summary.passes, summary.violations);
 
     return summary;
 };
 
-module.exports = { calculateAuditSummary };
+// Formule commune du score RGAA : passes / (passes + violations) × 100
+// Les critères "incomplete" (non conclusifs, nécessitant vérification humaine) et "inapplicable" (non concernés par la page) sont exclus du calcul
+// Utilisée par calculateAuditSummary (score par page) et getSiteAuditSummary (score global du site)
+const calculateScore = (passes, violations) => {
+    const rgaaScore = passes + violations;
+    return rgaaScore > 0 ? Math.floor((passes / rgaaScore) * 100) : null;
+};
+
+module.exports = { calculateAuditSummary, calculateScore };

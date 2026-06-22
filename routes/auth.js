@@ -21,15 +21,14 @@ router.get(
       return res.status(401).json({ result: false, error: 'Auth failed' });
     }
 
-    res.json({
-      result: true,
-      message: 'Login successful',
-      token: req.user.token,
-      user: {
-        firstName: req.user.firstName,
-        email: req.user.email,
-      },
-    });
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+    const redirectUrl = new URL('/auth/google/callback', frontendUrl);
+
+    redirectUrl.searchParams.set('token', req.user.token);
+    redirectUrl.searchParams.set('firstName', req.user.firstName || '');
+    redirectUrl.searchParams.set('email', req.user.email || '');
+
+    res.redirect(redirectUrl.toString());
   }
 );
 

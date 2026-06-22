@@ -4,8 +4,9 @@ const Site = require("../models/sites.js");
 const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody.js");
-const { calculateAuditSummary } = require('../services/score.service.js');
+const { calculateAuditSummary } = require('../services/scoreAudit.service.js');
 
+// CREATE
 // Fonction de création d'un audit
 const createAudit = async (siteId, userId, url) => {
   const audit = new Audit({
@@ -109,7 +110,7 @@ const handleCreateAudit = async (siteId, userId, url, axeCoreResults) => {
 }
 
 // Fonction de création d'un audit appelé par la route POST /audit
-const createAuditController = async (req, res) => {
+const createAuditAction = async (req, res) => {
   const { url, name, domain, token } = req.body;
   
   // Regex pour vérifier si conforme : doit commencer par https:// + obligation d'avoir un point avec des caractères de chaque côté.
@@ -179,14 +180,15 @@ const createAuditController = async (req, res) => {
         return res.status(200).json({
           result: true,
           website: newSite,
-          audit: { results: newAudit.results }
+          results: newAudit.results,
         });
       } else {
         // Connecté : toutes les données disponibles à l'utilisateur : results + tests
         return res.status(200).json({
           result: true,
           website: newSite,
-          audit: { results: newAudit.results, tests: newAudit.tests }
+          results: newAudit.results,
+          tests: newAudit.tests,
         });
       }
     } else {
@@ -197,14 +199,16 @@ const createAuditController = async (req, res) => {
   }
 }
 
+// READ
 // Fonction qui récupère un audit via son id (indentication d'une ressource via le params envoyé dans l'url)
-const getAuditController = (req, res) => {
+const getAuditAction = (req, res) => {
   Audit.findById(req.params.id).then((auditDoc) => {
     if (auditDoc !== null) {
       Test.find({ audit: auditDoc._id }).then(testsDoc => {
         res.status(200).json({
           result: true,
-          audit: { results: auditDoc, tests: testsDoc }
+          results: auditDoc,
+          tests: testsDoc
         });
       });
     } else {
@@ -213,4 +217,85 @@ const getAuditController = (req, res) => {
   });
 }
 
-module.exports = {createAuditController, getAuditController};
+
+// Tous les audits d'un utilisateur connecté, avec leur site (POST /audit/all)
+const getAllAuditsAction = async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(403).json({ result: false, error: "Token manquant" });
+  }
+
+  const user = await User.findOne({ token });
+  if (!user) {
+    return res.status(403).json({ result: false, error: "Utilisateur non trouvé" });
+  }
+
+  const audits = await Audit.find({ user: user._id, status: "completed" })
+    .populate('site')
+    .sort({ createdAt: -1 });
+
+  res.status(200).json({ result: true, audits });
+};
+
+// GET / dynamique par audit 
+const getAuditView = async (req, res) => {
+  const { token, id } = req.params;
+
+   const user = await User.findOne({ token });
+  if (!user) {
+    return res.status(403).json({ result: false, error: "Utilisateur non trouvé" });
+  }
+
+  const audit = await Audit.findById(id)
+    .populate('site', 'name domain')
+
+         if (!audit) {
+
+    return res.status(404).json({ result: false, error: "Audit introuvable" });
+  }
+
+  const tests = await Test.find({audit: audit._id});
+
+   res.json({ result: true, results: audit, tests: tests });
+
+};
+
+
+// DELETE
+// supprimer un audit
+const deleteAuditAction = async (req, res) => {
+  const { auditId } = req.params;
+  const { token } = req.body;
+
+  // CheckBody vérifie que token est présent et non vide
+  if (!checkBody(req.body, ['token'])) {
+    return res.status(403).json({ result: false, error: "Token manquant" });
+  }
+
+  // Vérifier si un utilisateur existe et si un site existe aussi 
+  const user = await User.findOne({ token });
+  if (!user) {
+    return res.status(403).json({ result: false, error: "Utilisateur non trouvé" });
+  }
+  const audit = await Audit.findById(auditId);
+  if (!audit) {
+    return res.status(403).json({ result: false, error: "Audit introuvable" });
+  }
+
+  // 1. vérifie que l'utilisateur est bien propriétaire de l'audit
+  const hasAccess = await Audit.exists({ _id: auditId, user: user._id });
+  if (!hasAccess) {
+    return res.status(403).json({ result: false, error: "Accès non autorisé" });
+  }
+
+  // 2. Supprime tous les tests liés à ces audits
+  await Test.deleteMany({ audit: auditId });
+
+  // 3. Supprime l'audit
+  await Audit.deleteOne({ _id: auditId });
+
+  res.status(200).json({ result: true });
+};
+
+module.exports = { createAuditAction, getAuditAction, getAllAuditsAction, getAuditView, deleteAuditAction };
