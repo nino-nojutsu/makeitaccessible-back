@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 const passport = require('passport');
 
-// 🔵 1. Redirection vers Google
+// Redirection vers Google
 router.get(
   '/google',
   passport.authenticate('google', {
@@ -10,7 +10,7 @@ router.get(
   })
 );
 
-// 🔵 2. Callback Google
+// Callback Google
 router.get(
   '/google/callback',
   passport.authenticate('google', { session: false }),
