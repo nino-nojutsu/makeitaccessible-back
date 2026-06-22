@@ -19,7 +19,7 @@ const updateAuditForUser = async (auditId, userDoc) => {
 /* POST route to register a new user */
 router.post("/signup", (req, res) => {
   if (!checkBody(req.body, ["firstName", "lastName", "email", "username", "password"])) {
-    res.json({ result: false, error: "Missing or empty fields" });
+    res.json({ result: false, error: "Les champs obligatoires sont manquants ou invalides" });
     return;
   }
 
@@ -28,7 +28,7 @@ router.post("/signup", (req, res) => {
     $or: [{ username: req.body.username }, { email: req.body.email }],
   }).then((data) => {
     if (data !== null) {
-      res.json({ result: false, error: "User already exists" });
+      res.json({ result: false, error: "L'utilisateur existe déjà" });
       return;
     }
     const hash = bcrypt.hashSync(req.body.password, 10);
@@ -72,7 +72,7 @@ router.post("/signup", (req, res) => {
 /* POST route to login a user */
 router.post("/signin", (req, res) => {
   if (!checkBody(req.body, ["username", "password"])) {
-    res.json({ result: false, error: "Missing or empty fields" });
+    res.json({ result: false, error: "Les champs obligatoires sont manquants ou invalides" });
     return;
   }
 
@@ -165,7 +165,7 @@ router.put("/user", (req, res) => {
 
 router.delete("/",  async(req, res)  => {
   if (!checkBody(req.body, ['token'])) {
-    return res.json({ result: false, error: 'Missing or empty fields' });
+    return res.json({ result: false, error: 'Les champs obligatoires sont manquants ou invalides' });
   }
 
   const user = await User.findOne({ token: req.body.token });

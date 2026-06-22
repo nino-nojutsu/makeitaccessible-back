@@ -5,7 +5,7 @@ const { checkBody } = require("../modules/checkBody.js");
 // Fonction qui valide une rule axe-core
 const testValidationAction = (req, res) => {
   if (!checkBody(req.body, ['token', 'testId', 'ruleId', 'type'])) {
-    res.json({ result: false, error: 'Missing or empty fields' });
+    res.json({ result: false, error: 'Les champs obligatoires sont manquants ou invalides' });
     return;
   }
 
@@ -37,7 +37,7 @@ const testValidationAction = (req, res) => {
 // Fonction qui ignore une rule axe-core
 const testIgnoreAction = (req, res) => {
   if (!checkBody(req.body, ['token', 'testId', 'ruleId', 'type', 'commentIgnore'])) {
-    res.json({ result: false, error: 'Missing or empty fields' });
+    res.json({ result: false, error: 'Les champs obligatoires sont manquants ou invalides' });
     return;
   }
 
@@ -71,7 +71,7 @@ const testIgnoreAction = (req, res) => {
 // Fonction qui commente une rule axe-core
 const testReviewAction = (req, res) => {
   if (!checkBody(req.body, ['token', 'testId', 'ruleId', 'type', 'commentReview'])) {
-    res.json({ result: false, error: 'Missing or empty fields' });
+    res.json({ result: false, error: 'Les champs obligatoires sont manquants ou invalides' });
     return;
   }
 
