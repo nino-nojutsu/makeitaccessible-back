@@ -19,7 +19,7 @@ const updateAuditForUser = async (auditId, userDoc) => {
 /* POST route to register a new user */
 router.post("/signup", (req, res) => {
   if (!checkBody(req.body, ["firstName", "lastName", "email", "username", "password"])) {
-    res.json({ result: false, error: "Les champs obligatoires sont manquants ou invalides" });
+    res.json({ result: false, error: "Les champs requis sont manquants ou invalides" });
     return;
   }
 
@@ -72,7 +72,7 @@ router.post("/signup", (req, res) => {
 /* POST route to login a user */
 router.post("/signin", (req, res) => {
   if (!checkBody(req.body, ["username", "password"])) {
-    res.json({ result: false, error: "Les champs obligatoires sont manquants ou invalides" });
+    res.json({ result: false, error: "Les champs requis sont manquants ou invalides" });
     return;
   }
 
@@ -105,7 +105,7 @@ router.post("/signin", (req, res) => {
         });
       }
     } else {
-      res.status(403).json({ result: false, error: "Utilisateur non trouvé or wrong password" });
+      res.status(403).json({ result: false, error: "Utilisateur non trouvé ou mot de passe incorrect" });
     }
   });
 });
@@ -166,7 +166,7 @@ router.put("/user", (req, res) => {
 // Delete route to delete a user
 router.delete("/",  async(req, res)  => {
   if (!checkBody(req.body, ['token'])) {
-    return res.json({ result: false, error: 'Les champs obligatoires sont manquants ou invalides' });
+    return res.json({ result: false, error: 'Les champs requis sont manquants ou invalides' });
   }
 
   const user = await User.findOne({ token: req.body.token });
