@@ -2,46 +2,105 @@ const User = require('../models/users');
 const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody.js");
 
-// Fonction qui valide un test
+// Fonction qui valide une rule axe-core
 const testValidationAction = (req, res) => {
-  if (!checkBody(req.body, ['token', 'testId'])) {
-    res.json({ result: false, error: 'Missing or empty fields' });
+  if (!checkBody(req.body, ['token', 'testId', 'ruleId', 'type'])) {
+    res.json({ result: false, error: 'Les champs obligatoires sont manquants ou invalides' });
     return;
   }
 
   // Vérifie sur l'utilisateur est trouvé. Si l'utilisateur existe, il a l'autorisation de valider un test
-  User.findOne({ token: req.body.token }).then(user => {
+  User.findOne({ token: req.body.token }).then(async user => {
     if (user === null) {
-      res.json({ result: false, error: 'User not found' });
+      res.json({ result: false, error: 'Utilisateur non trouvé' });
       return;
     }
 
     // Vérifie si le test a été trouvé
-    Test.findById(req.body.testId).then(testDoc => {
-      if (!testDoc) {
-        res.json({ result: false, error: 'Test not found' });
-        return;
-      }
-
-      console.log('testDoc._id', testDoc._id);
-
-      Test.updateOne(
-        { _id: testDoc._id },
-        {
-          $set: {
-            status: "validated"
-          }
-        }
-      ).then((updatedTest) => {
-        if (updatedTest.modifiedCount > 0) {
-          console.log('Test updated');
-          res.status(200).json({ result: true });
-        } else {
-          res.status(403).json({ result: false, error: 'Unable to update a test' });
-        }
-      });
+    const testDoc = await Test.findById(req.body.testId);
+    // Récupère les keys ruleId et type depuis req.body et stocke dans des variables du même nom
+    const { ruleId, type } = req.body;
+    // Récupère la rule concernée pour mettre à jour le status de la rule
+    const rule = testDoc[type].find(r => r.id === ruleId);
+    // Mets à jour le status
+    rule.status = 'validated';
+    // Dis explicitement que l'array type (violations, incomplete, passes, inapplicable) à été modifié et doit persisté
+    testDoc.markModified(type);
+    // Mets à jour le document
+    await testDoc.save().then((testDocUpdated) => {
+      console.log('Test updated');
+      res.status(200).json({ result: true, testDoc: testDocUpdated });
     });
   });
 }
 
-module.exports = {testValidationAction};
+// Fonction qui ignore une rule axe-core
+const testIgnoreAction = (req, res) => {
+  if (!checkBody(req.body, ['token', 'testId', 'ruleId', 'type', 'commentIgnore'])) {
+    res.json({ result: false, error: 'Les champs obligatoires sont manquants ou invalides' });
+    return;
+  }
+
+  // Vérifie sur l'utilisateur est trouvé. Si l'utilisateur existe, il a l'autorisation de valider un test
+  User.findOne({ token: req.body.token }).then(async user => {
+    if (user === null) {
+      res.json({ result: false, error: 'Utilisateur non trouvé' });
+      return;
+    }
+
+    // Vérifie si le test a été trouvé
+    const testDoc = await Test.findById(req.body.testId);
+    // Récupère les keys ruleId et type depuis req.body et stocke dans des variables du même nom
+    const { ruleId, type, commentIgnore } = req.body;
+    // Récupère la rule concernée pour mettre à jour le status de la rule
+    const rule = testDoc[type].find(r => r.id === ruleId);
+    // Mets à jour le status
+    rule.status = 'ignored';
+    // Mets à jour le commentaire
+    rule.comment = commentIgnore;
+    // Dis explicitement que l'array type (violations, incomplete, passes, inapplicable) à été modifié et doit persisté
+    testDoc.markModified(type);
+    // Mets à jour le document
+    await testDoc.save().then((testDocUpdated) => {
+      console.log('Test updated');
+      res.status(200).json({ result: true, testDoc: testDocUpdated });
+    });
+  });
+}
+
+// Fonction qui commente une rule axe-core
+const testReviewAction = (req, res) => {
+  if (!checkBody(req.body, ['token', 'testId', 'ruleId', 'type', 'commentReview'])) {
+    res.json({ result: false, error: 'Les champs obligatoires sont manquants ou invalides' });
+    return;
+  }
+
+  // Vérifie sur l'utilisateur est trouvé. Si l'utilisateur existe, il a l'autorisation de valider un test
+  User.findOne({ token: req.body.token }).then(async user => {
+    if (user === null) {
+      res.json({ result: false, error: 'Utilisateur non trouvé' });
+      return;
+    }
+
+    // Vérifie si le test a été trouvé
+    const testDoc = await Test.findById(req.body.testId);
+    // Récupère les keys ruleId et type depuis req.body et stocke dans des variables du même nom
+    const { ruleId, type, commentReview } = req.body;
+    console.log('type', type);
+    // Récupère la rule concernée pour mettre à jour le status de la rule
+    const rule = testDoc[type].find(r => r.id === ruleId);
+    // Mets à jour le status
+    rule.status = 'reviewed';
+    // Mets à jour le commentaire
+    rule.comment = commentReview;
+    // Dis explicitement que l'array type (violations, incomplete, passes, inapplicable) à été modifié et doit persisté
+    testDoc.markModified(type);
+    // Mets à jour le document
+    await testDoc.save().then((testDocUpdated) => {
+      console.log('Test updated');
+      res.status(200).json({ result: true, testDoc: testDocUpdated });
+    });
+  });
+}
+
+module.exports = {testValidationAction, testIgnoreAction, testReviewAction};

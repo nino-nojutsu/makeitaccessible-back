@@ -82,8 +82,8 @@ async function runAllTests(url) {
   await browser.close();
 
   // 7. On retourne le tableau listant chaque résultat de chaque thématique (13 au total : 1. Images... 2. Cadres... 3. Couleurs... 4. Multimédia, etc...)
-  // return audit
-  return results;
+  // return audit => retourne les données brutes d'Axe-core
+  return results; // retourne les données mappées et filtrées par thématique/catégorie
 }
 
 module.exports = runAllTests;

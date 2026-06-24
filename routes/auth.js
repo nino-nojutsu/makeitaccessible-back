@@ -15,21 +15,17 @@ router.get(
   '/google/callback',
   passport.authenticate('google', { session: false }),
   (req, res) => {
-    // req.user vient de passport.js
-
     if (!req.user) {
       return res.status(401).json({ result: false, error: 'Auth failed' });
     }
 
-    res.json({
-      result: true,
-      message: 'Login successful',
-      token: req.user.token,
-      user: {
-        firstName: req.user.firstName,
-        email: req.user.email,
-      },
-    });
+    const frontendUrl = 'http://localhost:3001';
+
+    res.redirect(
+      `${frontendUrl}/google-auth?token=${req.user.token}&firstName=${encodeURIComponent(
+        req.user.firstName || ''
+      )}&username=${encodeURIComponent(req.user.username || '')}`
+    );
   }
 );
 

@@ -1,3 +1,6 @@
+var { chromium } = require("playwright");
+//var { readFileSync, readdirSync } = require("fs");
+
 const runAllTests = require("../tests/runAllTests.js");
 const User = require('../models/users');
 const Site = require("../models/sites.js");
@@ -27,12 +30,22 @@ const createAudit = async (siteId, userId, url) => {
 
 // Fonction de création des tests
 const createTests = async (category, resultsByFilteredCategory, auditId) => {
+  // console.log('resultsByFilteredCategory', resultsByFilteredCategory);
+
+  // Pour chaque document testDoc créé, extrait chaque règle Axe-core par type et ajoute en complément la key status "to_do" 
+  // et la key comments (à chaîne vide) à chaque objet de règle en mappant chaque rules catégorisées
+  // Attention! {...rule} spread tiut le contenu de l'objet rule
+  const inapplicable = resultsByFilteredCategory.inapplicable.map(rule => ({ ...rule, status: 'to_do', comment: '' }));
+  const passes = resultsByFilteredCategory.passes.map(rule => ({ ...rule, status: 'validated', comment: null }));
+  const incomplete = resultsByFilteredCategory.incomplete.map(rule => ({ ...rule, status: 'to_do', comment: '' }));
+  const violations = resultsByFilteredCategory.violations.map(rule => ({ ...rule, status: 'to_do', comment: '' }));
+
   const test = new Test({
     category,
-    inapplicable: resultsByFilteredCategory.inapplicable,
-    passes: resultsByFilteredCategory.passes,
-    incomplete: resultsByFilteredCategory.incomplete,
-    violations: resultsByFilteredCategory.violations,
+    inapplicable,
+    passes,
+    incomplete,
+    violations,
     audit: auditId,
   });
 
@@ -135,6 +148,7 @@ const createAuditAction = async (req, res) => {
 
   // Si on a des résultats (anomalies, etc...)
   if (axeCoreResults) {
+    // Pour afficher les données bruts ou filtrées par catégorie
     // res.status(200).json({ result: true, axeCoreResults });
     // return;
     const user = token ? await User.findOne({ token }) : null;
@@ -239,7 +253,7 @@ const getAllAuditsAction = async (req, res) => {
 };
 
 // GET / dynamique par audit 
-const getAuditView = async (req, res) => {
+const getAuditViewAction = async (req, res) => {
   const { token, id } = req.params;
 
    const user = await User.findOne({ token });
@@ -262,7 +276,7 @@ const getAuditView = async (req, res) => {
 };
 
 // rechercher un audit
-const searchAudit = async (req, res) => {
+const searchAuditAction = async (req, res) => {
 	const { search } = req.query;
 	const { token } = req.params;
 
@@ -285,7 +299,6 @@ const searchAudit = async (req, res) => {
 		res.status(500).json({ result: false, error: error.message });
 	}
 };
-
 
 // DELETE
 // supprimer un audit
@@ -332,4 +345,38 @@ const deleteAuditAction = async (req, res) => {
   res.status(200).json({ result: true, siteDeleted});
 };
 
-module.exports = { createAuditAction, getAuditAction, getAllAuditsAction, getAuditView, searchAudit, deleteAuditAction };
+// GET: générer les résultats d'un audit au format PDF
+/* 
+const generatePDFAuditAction = async (req, res) => {
+  // inline script and styles into a html boilerplate
+  const staticHtml = `
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width,initial-scale=1" />
+    </head>
+    <body>
+      <div>test</div>
+    </body>
+  </html>`
+
+  // launch chromium and create a page
+  const browser = await chromium.launch()
+  const page = await browser.newPage();
+
+  // set the content to be the react app
+  await page.setContent(staticHtml)
+
+  // save the page to a file using playwrights `.pdf` function
+  await page.pdf({
+    path: 'renderedwithplaywright.pdf',
+    margin: { top: '0px', left: '0px', right: '0px', bottom: '0px' },
+    format: 'A4',
+  })
+
+  await browser.close()
+}
+*/
+
+module.exports = { createAuditAction, getAuditAction, getAllAuditsAction, getAuditViewAction, searchAuditAction, deleteAuditAction };
