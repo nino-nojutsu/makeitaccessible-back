@@ -18,7 +18,7 @@ router.get('/archive/:token/:id', getAuditView);
 router.get('/search/:token', searchAudit);
 
 // DELETE / supprimer un audit d'une page
-router.delete("/:auditId", deleteAuditAction);  
+router.delete("/:id", deleteAuditAction);  
 
 
 module.exports = router;

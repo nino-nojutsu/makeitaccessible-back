@@ -290,7 +290,7 @@ const searchAudit = async (req, res) => {
 // DELETE
 // supprimer un audit
 const deleteAuditAction = async (req, res) => {
-  const { auditId } = req.params;
+  const { id } = req.params;
   const { token } = req.body;
 
   // CheckBody vérifie que token est présent et non vide
@@ -303,24 +303,33 @@ const deleteAuditAction = async (req, res) => {
   if (!user) {
     return res.status(403).json({ result: false, error: "Utilisateur non trouvé" });
   }
-  const audit = await Audit.findById(auditId);
+  const audit = await Audit.findById(id);
   if (!audit) {
     return res.status(403).json({ result: false, error: "Audit introuvable" });
   }
 
   // 1. vérifie que l'utilisateur est bien propriétaire de l'audit
-  const hasAccess = await Audit.exists({ _id: auditId, user: user._id });
+  const hasAccess = await Audit.exists({ _id: audit._id, user: user._id });
   if (!hasAccess) {
     return res.status(403).json({ result: false, error: "Accès non autorisé" });
   }
 
   // 2. Supprime tous les tests liés à ces audits
-  await Test.deleteMany({ audit: auditId });
+  await Test.deleteMany({ audit: audit._id});
 
   // 3. Supprime l'audit
-  await Audit.deleteOne({ _id: auditId });
+  await Audit.deleteOne({ _id: audit._id });
 
-  res.status(200).json({ result: true });
+  // 4. Vérifie s'il y a encore des audits
+  const AuditLeft = await Audit.findOne({site:audit.site});
+  let siteDeleted = false;
+
+  if(!AuditLeft) {
+    await Site.deleteOne({ _id: audit.site});
+    siteDeleted = true;
+  }
+
+  res.status(200).json({ result: true, siteDeleted});
 };
 
 module.exports = { createAuditAction, getAuditAction, getAllAuditsAction, getAuditView, searchAudit, deleteAuditAction };
