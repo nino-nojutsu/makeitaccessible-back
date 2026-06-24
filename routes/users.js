@@ -110,21 +110,23 @@ router.post("/signin", (req, res) => {
   });
 });
 
-router.get("/user", (req, res) => {
-  const token = req.query.token;
+router.get("/:token", (req, res) => {
+  const token = req.params.token;
+
   if (!token) {
     res.json({ result: false, error: "missing token" });
     return;
   }
 
-  User.findOne({ token: token })
-    .then((data) => {
-      data.password = undefined;
-      res.json(data);
-    })
-    .catch((error) => {
-      res.json({ result: false, error: error.message });
-    });
+  User.findOne({ token: req.params.token }).then(user => {
+    if (user === null) {
+      res.json({ result: false, error: 'User not found' });
+      return;
+    } else {
+      user.password = undefined;
+      res.json({ result: true, user });
+    }
+  });
 });
 
 router.put("/user", (req, res) => {
