@@ -74,3 +74,6 @@ typings/
 README.md
 controllers/users.controller.js
 tests/example.spec.js
+
+#PDFs
+/pdfs/

@@ -8,6 +8,7 @@ const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody.js");
 const { calculateAuditSummary } = require('../services/scoreAudit.service.js');
+const moment = require('moment');
 
 // CREATE
 // Fonction de création d'un audit
@@ -346,37 +347,68 @@ const deleteAuditAction = async (req, res) => {
 };
 
 // GET: générer les résultats d'un audit au format PDF
-/* 
-const generatePDFAuditAction = async (req, res) => {
-  // inline script and styles into a html boilerplate
-  const staticHtml = `
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width,initial-scale=1" />
-    </head>
-    <body>
-      <div>test</div>
-    </body>
-  </html>`
 
-  // launch chromium and create a page
-  const browser = await chromium.launch()
-  const page = await browser.newPage();
+const generatePDFAuditAction = async (req, res, next) => {
+  User.findOne({ token: req.params.token }).then(userDoc => {
+    if (userDoc === null) {
+      res.json({ result: false, error: 'User not found' });
+      return;
+    }
 
-  // set the content to be the react app
-  await page.setContent(staticHtml)
+    Audit.findById(req.params.id).then(async auditDoc => {
+      if (auditDoc !== null) {
+        const script = readFileSync(`./build/static/js/main.<hash>.js`) // reference to compiled react app
+        const css = readFileSync(`./build/static/css/main.<hash>.css`) // reference to compiled react css
 
-  // save the page to a file using playwrights `.pdf` function
-  await page.pdf({
-    path: 'renderedwithplaywright.pdf',
-    margin: { top: '0px', left: '0px', right: '0px', bottom: '0px' },
-    format: 'A4',
-  })
+        const staticHtml = `
+          <!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width,initial-scale=1" />
+              <style>${css}</style>
+            </head>
+            <body>
+              <div id="root"></div>
+            </body>
+            <script>${script}</script>
+          </html>`;
 
-  await browser.close()
+        // Lance chromium et crée une page virtuelle
+        const browser = await chromium.launch();
+        const context = await browser.newContext();
+        const page = await browser.newPage();
+
+        // Injecte le contenu react à la volée
+        await page.setContent(staticHtml)
+
+        // Convertis la page en un fichier au format pdf
+        const today = moment().format('YYYYMMDD');
+        const pdfGenerated = await page.pdf({
+          path: `./pdfs/pdf-audit-${auditDoc._id}-${today}.pdf`,
+          margin: {
+            top: '16mm',
+            right: '12mm',
+            bottom: '16mm',
+            left: '12mm'
+          },
+          format: 'A4',
+          preferCSSPageSize: true,
+          printBackground: true,
+        })
+
+        await context.close();
+        await browser.close();
+
+        res.set('Content-Disposition', `inline; filename="audit-${today}.pdf"`);
+        res.set('Content-Type', 'application/pdf');
+        res.status(200).send(pdfGenerated);
+      } else {
+        res.status(403).json('Audit non trouvé');
+      }
+    });
+  });
 }
-*/
 
-module.exports = { createAuditAction, getAuditAction, getAllAuditsAction, getAuditViewAction, searchAuditAction, deleteAuditAction };
+
+module.exports = { createAuditAction, getAuditAction, getAllAuditsAction, getAuditViewAction, searchAuditAction, deleteAuditAction, generatePDFAuditAction };

@@ -7,7 +7,8 @@ const {
   getAllAuditsAction,
   getAuditViewAction,
   deleteAuditAction,
-  searchAuditAction } = require('../controllers/audit.controller.js');
+  searchAuditAction,
+  generatePDFAuditAction } = require('../controllers/audit.controller.js');
 
 // Route POST qui lance un audit et récupère la proprieté "url" dans le corps (body) de la requête
 router.post("/", createAuditAction);
@@ -28,7 +29,6 @@ router.get('/search/:token', searchAuditAction);
 router.delete("/:id", deleteAuditAction);
 
 // Route GET : genérer les résultats d'un audit au format PDF
-// router.get("/:token/:id/generate-pdf", generatePDFAuditAction);
-
+router.get("/generate-pdf/:token/:id", generatePDFAuditAction);
 
 module.exports = router;
