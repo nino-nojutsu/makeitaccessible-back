@@ -337,16 +337,18 @@ const deleteAuditAction = async (req, res) => {
   await Audit.deleteOne({ _id: audit._id });
 
   // 4. Vérifie s'il y a encore des audits
-  const AuditLeft = await Audit.findOne({site:audit.site});
+  const siteId = audit.site._id || audit.site;
+
+  const AuditLeft = await Audit.findOne({ site: siteId });
   let siteDeleted = false;
 
-  if(!AuditLeft) {
-    await Site.deleteOne({ _id: audit.site});
+ if (!AuditLeft) {
+    await Site.deleteOne({ _id: siteId });
     siteDeleted = true;
-  } else {
-    const { summary } = await getSiteAuditSummary(audit.site);
-    await Site.findByIdAndUpdate(audit.site, { summary });
-  }
+} else {
+    const { summary } = await getSiteAuditSummary(siteId);
+    await Site.findByIdAndUpdate(siteId, { summary });
+}
 
   res.status(200).json({ result: true, siteDeleted});
 };
