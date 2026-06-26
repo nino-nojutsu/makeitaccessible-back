@@ -8,6 +8,8 @@ const Audit = require("../models/audits.js");
 const Test = require("../models/tests.js");
 const { checkBody } = require("../modules/checkBody.js");
 const { calculateAuditSummary } = require('../services/scoreAudit.service.js');
+const { getSiteAuditSummary } = require("../services/scoreSite.service.js");
+
 const moment = require('moment');
 
 // CREATE
