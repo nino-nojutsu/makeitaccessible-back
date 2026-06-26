@@ -341,6 +341,9 @@ const deleteAuditAction = async (req, res) => {
   if(!AuditLeft) {
     await Site.deleteOne({ _id: audit.site});
     siteDeleted = true;
+  } else {
+    const { summary } = await getSiteAuditSummary(audit.site);
+    await Site.findByIdAndUpdate(audit.site, { summary });
   }
 
   res.status(200).json({ result: true, siteDeleted});
