@@ -17,10 +17,10 @@ const { calculateScore } = require("./scoreAudit.service.js");
 
 const NOTE_AUDIT = ['violations', 'incomplete', 'passes', 'inapplicable'];
 
-const getSiteAuditSummary = async (siteId) => {
+const getSiteAuditSummary = async (siteId, userId) => {
 
     // ÉTAPE 1 : Récupère tous les audits du site Audit.find({ site: siteId })
-    const audits = await Audit.find({ site: siteId });
+    const audits = await Audit.find({ site: siteId, status: "completed", user: userId });
 
     // OPTION 1 => seul audit : on retourne directement son score stocké
     // Précision : audits est un tableau retourné par Audit.find()

@@ -346,7 +346,7 @@ const deleteAuditAction = async (req, res) => {
     await Site.deleteOne({ _id: siteId });
     siteDeleted = true;
 } else {
-    const { summary } = await getSiteAuditSummary(siteId);
+    const { summary } = await getSiteAuditSummary(siteId, user._id);
     await Site.findByIdAndUpdate(siteId, { summary });
 }
 

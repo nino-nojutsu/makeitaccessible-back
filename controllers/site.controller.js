@@ -34,7 +34,7 @@ const getSiteAuditSummaryController = async (req, res) => {
     return res.status(403).json({ result: false, error: "Accès non autorisé à ce site" });
   }
 
-  const { summary, pages } = await getSiteAuditSummary(siteId);
+  const { summary, pages } = await getSiteAuditSummary(siteId, user._id);
 
   res.status(200).json({
     result: true,
