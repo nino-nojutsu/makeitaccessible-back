@@ -2,7 +2,7 @@
 // On utilise @sparticuz/chromium + playwright-core pour faire tourner Playwright sur des environnements serverless.
 const playwright = require('playwright-core');
 const chromium = require('@sparticuz/chromium');
-//var { chromium } = require("playwright");
+//var chromium = require("playwright");
 
 const runAllTests = require("../tests/runAllTests.js");
 const User = require('../models/users');
@@ -384,8 +384,14 @@ const generatePDFAuditAction = async (req, res, next) => {
             <script>${script}</script>
           </html>`;
 
+        // Lance chromium via la lib @sparticuz/chromium pour lancer un navigateur headless sur un environnement serverless
+        const browser = await playwright.chromium.launch({
+          args: chromium.args,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+        });
         // Lance chromium et crée une page virtuelle
-        const browser = await chromium.launch();
+        //const browser = await chromium.launch();
         const context = await browser.newContext();
         const page = await browser.newPage();
 
