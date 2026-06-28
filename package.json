@@ -5,9 +5,11 @@
   "scripts": {
     "start": "node ./bin/www",
     "dump:collections": "node ./scripts/dump_collections.js",
-    "jest": "jest ./app.test.js"
+    "jest": "jest ./app.test.js",
+    "postinstall": "playwright install chromium"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^149.0.0",
     "axe-core": "^4.11.4",
     "bcrypt": "^6.0.0",
     "cookie-parser": "~1.4.4",
@@ -22,7 +24,7 @@
     "node-fetch": "2",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "playwright": "^1.60.0",
+    "playwright": "^1.61.1",
     "uid2": "^1.0.0"
   },
   "devDependencies": {

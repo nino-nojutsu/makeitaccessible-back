@@ -19,10 +19,8 @@ router.get(
       return res.status(401).json({ result: false, error: 'Auth failed' });
     }
 
-    const frontendUrl = 'http://localhost:3001';
-
     res.redirect(
-      `${frontendUrl}/google-auth?token=${req.user.token}&firstName=${encodeURIComponent(
+      `${process.env.NEXT_FRONTEND_URL}/google-auth?token=${req.user.token}&firstName=${encodeURIComponent(
         req.user.firstName || ''
       )}&username=${encodeURIComponent(req.user.username || '')}`
     );

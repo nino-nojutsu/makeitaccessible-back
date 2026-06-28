@@ -1,4 +1,10 @@
-var { chromium } = require("playwright");
+// Nécessaire pour la mise en production sur Vercel car les fonctions serverless de Vercel ne supportent pas Playwright nativement
+// On utilise @sparticuz/chromium + playwright-core pour faire tourner Playwright sur des environnements serverless.
+// const playwright = require('playwright-core');
+// const chromium = require('@sparticuz/chromium');
+const playwright = require('playwright');
+
+const path = require('path');
 var frLocale = require("axe-core/locales/fr.json"); // locale FR officielle
 var scanImages = require("./categories/images.test.js"); // 1. Images
 var scanCadres = require("./categories/cadres.test.js"); // 2. Cadres
@@ -45,12 +51,30 @@ async function runAllTests(url) {
   // Le navigateur "virtuel" télécharge la page, exécute le JavaScript, applique le CSS, et
   // construit un vrai DOM complet en mémoire.
   // note: si vous ne pouvez pas installer Playwright via yarn, faîtes "npx playwright install"
-  const browser = await chromium.launch({ headless: true });
+  
+  // Lance chromium via la lib @sparticuz/chromium pour lancer un navigateur headless sur un environnement serverless
+  let browser;
+  if (process.env.VERCEL) {
+  // Lance chromium via la lib @sparticuz/chromium pour lancer un navigateur headless sur un environnement serverless
+  // Vercel : binaire Linux via @sparticuz/chromium  
+    const { default: chromium } = await import('@sparticuz/chromium');
+    browser = await playwright.chromium.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+  } else {
+    // Local : playwright complet avec navigateurs installés
+    // On doit installer le navigateur chromium en local: npx playwright install chromium
+    // Lance chromium
+    browser = await playwright.chromium.launch({ headless: true });
+  }
+  // Crée une page viruel
   const page = await browser.newPage();
   await page.goto(url);
 
   // 2. Injection du script axe-core + audit
-  await page.addScriptTag({ path: "./node_modules/axe-core/axe.min.js" });
+  await page.addScriptTag({ path: path.join(__dirname, '../node_modules/axe-core/axe.min.js') });
 
   // 3. On configure axe-core pour avoir des résultats en français
   const audit = await page.evaluate(async (locale) => {
