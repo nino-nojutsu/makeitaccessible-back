@@ -29,11 +29,11 @@ passport.use(
           user = await User.findOne({ email });
 
           if (user) {
-            // 🔗 Fusion compte existant
+            // Fusion compte existant
             user.googleId = profile.id;
             await user.save();
           } else {
-            // 🆕 Création nouvel utilisateur
+            // Création nouvel utilisateur
             const newUser = new User({
               firstName: profile.name?.givenName || '',
               lastName: profile.name?.familyName || '',
